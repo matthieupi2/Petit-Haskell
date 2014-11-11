@@ -1,0 +1,10 @@
+*~
+*.cm[iox]
+*.o
+*.annot
+petitghc
+lexer.ml
+parser.ml
+parser.mli
+parser.output
+parser.automaton
