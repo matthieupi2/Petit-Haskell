@@ -4,6 +4,8 @@
 open Format
 open Lexing
 open Parser
+(* TODO inutile ? *)
+open Ast
 
 let usage = "usage : petitghc [options] file.hs"
 
@@ -27,6 +29,13 @@ let rec print_toks = function
   | [] -> printf "@."
   | IDENT0 s::q -> printf "id0<%s> " s ; print_toks q
   | IDENT1 s::q -> printf "id1<%s> " s ; print_toks q
+  | CST c::q -> ( match c with
+    | Cint n -> printf "int<%d> " n
+    | Cchar c -> printf "char<%c> " c
+    | Cbool true -> printf "bool<True> "
+    | Cbool false -> printf "bool<False> "
+    | _ -> printf "_ " ) ;
+    print_toks q
   | EOF::q -> printf "#" ; print_toks q
   | _::q -> printf "_ " ; print_toks q
 
