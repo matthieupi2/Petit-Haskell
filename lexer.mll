@@ -16,9 +16,10 @@ let car = ['\032'-'\126']#['\\' '"'] | '\\'['\\' '"' 'n' 't']
 let ident = ['a'-'z'] (letter | digit | '_' | '\'')*
 
 rule next_tokens = parse
+  | '\n' { next_tokens lexbuf }
   | ident as s { if Lexing.lexeme_start lexbuf = !line_start then IDENT0 s  else IDENT1 s }
   | eof { EOF }
-  | _ { Format.eprintf "illegal character@." ; exit 1 }
+  | _ as c {Format.eprintf "illegal character : %c@." c ; exit 1 }
 
 {
 
