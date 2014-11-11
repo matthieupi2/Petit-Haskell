@@ -2,8 +2,8 @@
 (* Analyseur lexical pour Petit Haskell *)
 
 {
-  type token =
-    | Teof
+  open Lexing
+  open Parser
 }
 
 let letter = ['a'-'z' 'A'-'Z']
