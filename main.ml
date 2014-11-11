@@ -1,6 +1,9 @@
 
 (* Programme principal *)
 
+open Format
+open Lexing
+
 let usage = "usage : petitghc [options] file.hs"
 
 let spec = []
@@ -18,4 +21,9 @@ let file =
 
 let () =
   let c = open_in file in
-  close_in c
+  let lb = Lexing.from_channel c in 
+  let rec digere_lexer () = match Lexer.next_tokens lb with
+    | _ -> digere_lexer () in
+  digere_lexer () ;
+  close_in c ;
+  exit 0

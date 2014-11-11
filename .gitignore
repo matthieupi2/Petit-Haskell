@@ -8,3 +8,6 @@ parser.ml
 parser.mli
 parser.output
 parser.automaton
+*.hs
+*.native
+_build

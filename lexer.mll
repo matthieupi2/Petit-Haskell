@@ -13,8 +13,8 @@ let car = ['\032'-'\126']#['\\' '"'] | '\\'['\\' '"' 'n' 't']
 let ident = letter (letter | digit | '_')*
 
 rule next_tokens = parse
-  | eof { Teof}
-  | _ { Format.eprintf "illegal charactet" ; exit 1 }
+  | eof { exit 0 }
+  | _ { Format.eprintf "illegal character@." ; exit 1 }
 
 {
 
