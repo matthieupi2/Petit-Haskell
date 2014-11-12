@@ -30,9 +30,9 @@ let () = List.iter (fun (t,s) -> Hashtbl.add toks t s )
   [ELSE, "else" ; IF, "if" ; IN, "in" ; LET, "let" ; CASE, "case" ; OF, "of" ;
    THEN, "then" ; RETURN, "return" ; DO, "do" ; LB, "(" ; RB, ")" ; LSB, "[" ;
    RSB, "]" ; LCB, "{" ; RCB, "}" ; ARROW, "->" ; SEMI, ";" ; COLON, ":" ;
-   COMMA, "," ; LAMBDA, "\\" ; LT, "<" ; LEQ, "<=" ; GT, ">" ; GEQ, ">=" ;
-   EQ, "==" ; NEQ, "/=" ; PLUS, "+" ; MINUS, "-" ; TIMES, "*" ; OR, "||" ;
-   AND, "&&" ; NEG, "-." ; EOF, "#"]
+   COMMA, "," ; LAMBDA, "\\" ; ASSIGN, "=" ; LT, "<" ; LEQ, "<=" ; GT, ">" ;
+   GEQ, ">=" ; EQ, "==" ; NEQ, "/=" ; PLUS, "+" ; MINUS, "-" ; TIMES, "*" ;
+   OR, "||" ; AND, "&&" ; NEG, "-." ; EOF, "#"]
 
 let rec print_toks = function
   | [] -> printf "@."

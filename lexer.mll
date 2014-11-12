@@ -58,13 +58,19 @@ rule next_tokens last_token = parse
   | "True"              { CST (Cbool true) }
   | "False"             { CST (Cbool false) }
 
-  | '-'   { match last_token with
-    | Some (RB | RSB | RCB | IDENT1 _ | CST _) -> MINUS
-    | _ -> NEG }
-  | '+'   { PLUS }
-  | '*'   { TIMES }
-  | "||"  { OR }
-  | "&&"  { AND }
+  | '('   { LB }
+  | ')'   { RB }
+  | '['   { LSB }
+  | ']'   { RSB }
+  | '{'   { LCB }
+  | '}'   { RCB }
+
+  | "->"  { ARROW }
+  | ';'   { SEMI }
+  | ':'   { COLON }
+  | ','   { COMMA }
+  | '\\'  { LAMBDA }
+  | '='   { ASSIGN }
 
   | '<'   { LT }
   | "<="  { LEQ }
@@ -73,18 +79,13 @@ rule next_tokens last_token = parse
   | "=="  { EQ }
   | "/="  { NEQ }
   
-  | "->"  { ARROW }
-  | ';'   { SEMI }
-  | ':'   { COLON }
-  | ','   { COMMA }
-  | '\\'  { LAMBDA }
-
-  | '('   { LB }
-  | ')'   { RB }
-  | '['   { LSB }
-  | ']'   { RSB }
-  | '{'   { LCB }
-  | '}'   { RCB }
+  | '-'   { match last_token with
+    | Some (RB | RSB | RCB | IDENT1 _ | CST _) -> MINUS
+    | _ -> NEG }
+  | '+'   { PLUS }
+  | '*'   { TIMES }
+  | "||"  { OR }
+  | "&&"  { AND }
 
   | eof     { EOF }
   | _ as c  { raise (Error ("illegal character: " ^ String.make 1 c)) }
