@@ -25,6 +25,15 @@ let file =
     | Some f -> f
     | None -> Arg.usage spec usage ; exit 1
 
+let toks = Hashtbl.create 59
+let () = List.iter (fun (t,s) -> Hashtbl.add toks t s )
+  [ELSE, "else" ; IF, "if" ; IN, "in" ; LET, "let" ; CASE, "case" ; OF, "of" ;
+   THEN, "then" ; RETURN, "return" ; DO, "do" ; LB, "(" ; RB, ")" ; LSB, "[" ;
+   RSB, "]" ; LCB, "{" ; RCB, "}" ; ARROW, "->" ; SEMI, ";" ; COLON, ":" ;
+   COMMA, "," ; LAMBDA, "\\" ; LT, "<" ; LEQ, "<=" ; GT, ">" ; GEQ, ">=" ;
+   EQ, "==" ; NEQ, "/=" ; PLUS, "+" ; MINUS, "-" ; TIMES, "*" ; OR, "||" ;
+   AND, "&&" ; NEG, "-." ; EOF, "#"]
+
 let rec print_toks = function
   | [] -> printf "@."
   | t::q -> ( match t with
@@ -36,10 +45,10 @@ let rec print_toks = function
       | Cbool true -> printf "bool<True> "
       | Cbool false -> printf "bool<False> "
       | Cstr s -> printf "string<%s> " s )
-    | MINUS -> printf "- "
-    | NEG -> printf "neg "
-    | EOF -> printf "#"
-    | _ -> printf "_ " ) ;
+    | t -> let s = try
+          Hashtbl.find toks t
+        with Not_found -> "_" in
+      printf "%s " s ) ;
     print_toks q
 
 let () =
