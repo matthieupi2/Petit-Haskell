@@ -42,10 +42,10 @@ let rec print_toks = function
 let () =
   let c = open_in file in
   let lb = Lexing.from_channel c in 
-  let rec digere_lexer () = match Lexer.next_tokens lb with
+  let rec digere_lexer last_token = match Lexer.next_tokens last_token lb with
     | EOF -> [EOF]
-    | t -> t::digere_lexer () in
-  let lex = digere_lexer () in 
+    | t -> t::digere_lexer (Some t) in
+  let lex = digere_lexer None in 
   close_in c ;
   if !print_tokens then
     print_toks lex ;
