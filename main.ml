@@ -27,17 +27,20 @@ let file =
 
 let rec print_toks = function
   | [] -> printf "@."
-  | IDENT0 s::q -> printf "id0<%s> " s ; print_toks q
-  | IDENT1 s::q -> printf "id1<%s> " s ; print_toks q
-  | CST c::q -> ( match c with
-    | Cint n -> printf "int<%d> " n
-    | Cchar c -> printf "char<%c> " c
-    | Cbool true -> printf "bool<True> "
-    | Cbool false -> printf "bool<False> "
-    | Cstr s -> printf "string<%s> " s ) ;
+  | t::q -> ( match t with
+    | IDENT0 s -> printf "id0<%s> " s
+    | IDENT1 s -> printf "id1<%s> " s
+    | CST c -> ( match c with
+      | Cint n -> printf "int<%d> " n
+      | Cchar c -> printf "char<%c> " c
+      | Cbool true -> printf "bool<True> "
+      | Cbool false -> printf "bool<False> "
+      | Cstr s -> printf "string<%s> " s )
+    | MINUS -> printf "- "
+    | NEG -> printf "neg "
+    | EOF -> printf "#"
+    | _ -> printf "_ " ) ;
     print_toks q
-  | EOF::q -> printf "#" ; print_toks q
-  | _::q -> printf "_ " ; print_toks q
 
 let () =
   let c = open_in file in

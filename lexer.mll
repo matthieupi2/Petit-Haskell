@@ -49,10 +49,34 @@ rule next_tokens last_token = parse
   | '"'                 { CST (Cstr (string_of_list (string lexbuf))) }
   | "True"              { CST (Cbool true) }
   | "False"             { CST (Cbool false) }
-  
-  | '-' { match last_token with
-    | Some (RP | RSB | RB | IDENT1 _ | CST _) -> MINUS
+
+  | '-'   { match last_token with
+    | Some (RB | RSB | RCB | IDENT1 _ | CST _) -> MINUS
     | _ -> NEG }
+  | '+'   { PLUS }
+  | '*'   { TIMES }
+  | "||"  { OR }
+  | "&&"  { AND }
+
+  | '<'   { LT }
+  | "<="  { LEQ }
+  | '>'   { GT }
+  | ">="  { GEQ }
+  | "=="  { EQ }
+  | "/="  { NEQ }
+  
+  | "->"  { ARROW }
+  | ';'   { SEMI }
+  | ':'   { COLON }
+  | ','   { COMMA }
+  | '\\'  { LAMBDA }
+
+  | '('   { LB }
+  | ')'   { RB }
+  | '['   { LSB }
+  | ']'   { RSB }
+  | '{'   { LCB }
+  | '}'   { RCB }
 
   | eof     { EOF }
   | _ as c  { raise (Error ("illegal character: " ^ String.make 1 c)) }
