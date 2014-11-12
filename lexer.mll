@@ -7,6 +7,8 @@
   open Parser
 
   exception Error of string
+(* TODO décentraliser CompilerError *)
+  exception CompilerError of string
 
   let kwd = Hashtbl.create 17
   let () = List.iter (fun (k,t) -> Hashtbl.add kwd k t)
@@ -42,6 +44,7 @@ let letter = ['a'-'z' 'A'-'Z']
 let digit = ['0'-'9']
 let integer = digit+
 let car = ['\032'-'\126']#['\\' '"'] | '\\'['\\' '"' 'n' 't']
+let wrongEscape = '\\'[^'\\' '"' 'n' 't']
 let ident = ['a'-'z'] (letter | digit | '_' | '\'')*
 
 rule next_tokens last_token = parse
@@ -51,12 +54,16 @@ rule next_tokens last_token = parse
   
   | ident as s  { id s lexbuf }
 
-(* TODO gestion entier trop grand *)
-  | integer as s        { CST (Cint (int_of_string s)) }
-  | '\''(car as s)'\''  { CST (Cchar (unescape s)) }
-  | '"'                 { CST (Cstr (string_of_list (string lexbuf))) }
-  | "True"              { CST (Cbool true) }
-  | "False"             { CST (Cbool false) }
+  | integer as s            { try
+      CST (Cint (int_of_string s))
+    with _ -> raise (CompilerError ("constant too large: " ^ s)) }
+  | '\''(car as s)'\''      { CST (Cchar (unescape s)) }
+  | '\'' car _              { raise (Error "missing \"'\"") }
+  | '\'' (wrongEscape as s) { raise (Error
+    ("'" ^ s ^ "' is not a escape character")) }
+  | '"'                     { CST (Cstr (string_of_list (string lexbuf))) }
+  | "True"                  { CST (Cbool true) }
+  | "False"                 { CST (Cbool false) }
 
   | '('   { LB }
   | ')'   { RB }
@@ -78,7 +85,7 @@ rule next_tokens last_token = parse
   | ">="  { GEQ }
   | "=="  { EQ }
   | "/="  { NEQ }
-  
+
   | '-'   { match last_token with
     | Some (RB | RSB | RCB | IDENT1 _ | CST _) -> MINUS
     | _ -> NEG }
@@ -96,8 +103,10 @@ and comment last_token = parse
   | _     { comment last_token lexbuf }
 
 and string = parse
-  | (car as s)     { unescape s::(string lexbuf) }
-  | '"'     { [] }
-  | eof     { raise (Error "unterminated string") }
-  | _ as c  { raise (Error (
+  | (car as s)        { unescape s::(string lexbuf) }
+  | wrongEscape as s  { raise (Error
+    ("'" ^ s ^ "' is not a escape character")) }
+  | '"'               { [] }
+  | eof               { raise (Error "unterminated string") }
+  | _ as c            { raise (Error (
     "illegal character in a string: " ^ String.make 1 c)) }
