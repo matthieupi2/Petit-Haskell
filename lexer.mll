@@ -8,12 +8,20 @@
 
   exception Error of string
 
+  let kwd = Hashtbl.create 17
+  let () = List.iter (fun (k,t) -> Hashtbl.add kwd k t)
+    ["else", ELSE ; "if", IF ; "in", IN ; "let", LET ; "case", CASE ; "of", OF ;
+     "then", THEN ; "return", RETURN ; "do", DO]
+
   let id s lb =
-    let pos = lb.lex_start_p in
-    if pos.pos_cnum = pos.pos_bol then
-      IDENT0 s
-    else
-      IDENT1 s
+    try
+      Hashtbl.find kwd s
+    with Not_found -> (
+      let pos = lb.lex_start_p in
+      if pos.pos_cnum = pos.pos_bol then
+        IDENT0 s
+      else
+        IDENT1 s )
 
   let unescape = function
     | "\\\\" -> '\\'
