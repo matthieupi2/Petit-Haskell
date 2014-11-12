@@ -34,7 +34,7 @@ let rec print_toks = function
     | Cchar c -> printf "char<%c> " c
     | Cbool true -> printf "bool<True> "
     | Cbool false -> printf "bool<False> "
-    | _ -> printf "_ " ) ;
+    | Cstr s -> printf "string<%s> " s ) ;
     print_toks q
   | EOF::q -> printf "#" ; print_toks q
   | _::q -> printf "_ " ; print_toks q
