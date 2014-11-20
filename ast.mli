@@ -1,12 +1,9 @@
 
 (* Arbre de syntaxe abstraite de Petit Haskell *)
 
-type ident0 = Ident0 of string
+type ident0 = string
 
-type ident = string
-
-type unop =
-  | Uneg
+type ident1 = string
 
 type binop =
   | Badd | Bsub | Bmul
@@ -19,19 +16,19 @@ type constant =
   | Cstr of string
   | Cbool of bool
 
-type def0 =
-  ident0 * ident list * expr
+type def0 = ident0 * ident1 list * expr
 
-and def =
-  ident * ident list * expr
+and def = ident1 * ident1 list * expr
 
 and expr =
+  | Eident1 of ident1
   | Ecst of constant
   | Elist of expr list
-  | Ecurr of expr list
-  | Elambda of ident list * expr
+  | Eappli of expr list
+  | Elambda of ident1 list * expr
+  | Ebinop of binop * expr * expr
   | Eif of expr * expr * expr
   | Elet of def list * expr
-  | Ecase of expr * expr * ident * ident * expr
+  | Ecase of expr * expr * ident1 * ident1 * expr
   | Edo of expr list
   | Ereturn
