@@ -26,7 +26,7 @@
 
 %start file
 
-%type <Ast.def0 list> file
+%type <Ast.def list> file
 
 %%
 
@@ -39,7 +39,7 @@ def0:
 (* TODO implémenter list *)
 simple_expr:
   | LB e=expr RB  { e }
-  | s1=IDENT1     { Eident1 s1 }
+  | s1=IDENT1     { Eident s1 }
   | c=CST         { Ecst c } ;
 
 (* TODO simple_expr *)
