@@ -61,7 +61,7 @@ let print_tokens lb =
 let ops = Hashtbl.create 17
 let () = List.iter (fun (o,s) -> Hashtbl.add ops o s )
   [ Badd, "+" ; Bsub, "-" ; Bmul, "*" ; Band, "&" ; Bor, "|" ; Bcol, ":" ;
-    Blt, "<" ; Bleq, "<=" ; Bgt, ">" ; Bgeq, ">=" ; Beq, "=" ; Bneq, "<>" ]
+    Blt, "<" ; Bleq, "<=" ; Bgt, ">" ; Bgeq, ">=" ; Beq, "=" ; Bneq, "/=" ]
 
 let print_ast =
   let print_cte = function
@@ -73,16 +73,15 @@ let print_ast =
   let rec print_expr = function
     | Eident s -> printf "%s" s
     | Ecst c -> print_cte c
-    | Ebinop (o, e0, e1) -> printf "(%s," (Hashtbl.find ops o) ;
+    | Ebinop (o, e0, e1) -> printf "%s " (Hashtbl.find ops o) ;
       print_expr e0 ;
-      printf ", " ;
-      print_expr e1 ;
-      printf ")"
+      printf " " ;
+      print_expr e1
     | _ -> printf "_" in
   let print_def (s, l, e) =
-    printf "%s<" s ;
+    printf "%s(" s ;
     List.iter (fun s  -> printf "%s," s) l ;
-    printf ">=\n" ;
+    printf ")=\n" ;
     print_expr e in
   let rec print_file = function
     | [] -> printf "#"
