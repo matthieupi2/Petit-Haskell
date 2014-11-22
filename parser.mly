@@ -6,7 +6,7 @@
 %token <Ast.constant> CST
 %token ELSE IF IN LET CASE OF THEN RETURN DO
 %token LB RB LSB RSB LCB RCB
-%token ARROW SEMI COLON COMMA LAMBDA ASSIGN
+%token ARROW SEMI COLON COMMA LAMBDA ASSIGN UNIT
 %token LT LEQ GT GEQ EQ NEQ
 %token PLUS MINUS TIMES OR AND
 %token NEG
@@ -43,9 +43,15 @@ simple_expr:
   | c=CST         { Ecst c } ;
 
 (* TODO simple_expr *)
+(* TODO lambda prend un seul argument *)
+(* TODO Ereturn = Ecst Cunit *)
 expr:
-  | se=simple_expr  { se }
-  | e0=expr o=op e1=expr { Ebinop (o, e0, e1) } ;
+  | se=simple_expr                        { se }
+  | e0=expr o=op e1=expr                  { Ebinop (o, e0, e1) }
+  | NEG e=expr                            { Ebinop (Bsub, Ecst (Cint 0), e) }
+  | LAMBDA args=IDENT1* ARROW e=expr      { Elambda (args, e) } 
+  | IF cdt=expr THEN e1=expr ELSE e2=expr { Eif (cdt, e1, e2) }
+  | RETURN UNIT                           { Ereturn } ;
 
 %inline op:
   | PLUS  { Badd }

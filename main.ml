@@ -34,7 +34,7 @@ let () = List.iter (fun (t,s) -> Hashtbl.add toks t s )
    RSB, "]" ; LCB, "{" ; RCB, "}" ; ARROW, "->" ; SEMI, ";" ; COLON, ":" ;
    COMMA, "," ; LAMBDA, "\\" ; ASSIGN, "=" ; LT, "<" ; LEQ, "<=" ; GT, ">" ;
    GEQ, ">=" ; EQ, "==" ; NEQ, "/=" ; PLUS, "+" ; MINUS, "-" ; TIMES, "*" ;
-   OR, "||" ; AND, "&&" ; NEG, "-." ; EOF, "#"]
+   OR, "||" ; AND, "&&" ; NEG, "-." ; EOF, "#" ; UNIT, "()"]
 
 let print_tokens lb =
   let rec digere_lexer last_token = match Lexer.next_tokens last_token lb with
@@ -70,14 +70,18 @@ let print_ast =
     | Cstr s -> printf "\"%s\"" s
     | Cbool true -> printf "True"
     | Cbool false -> printf "False" in
-  let rec print_expr = function
-    | Eident s -> printf "%s" s
-    | Ecst c -> print_cte c
-    | Ebinop (o, e0, e1) -> printf "%s " (Hashtbl.find ops o) ;
-      print_expr e0 ;
-      printf " " ;
-      print_expr e1
-    | _ -> printf "_" in
+  let rec print_expr = function 
+    | Eident s -> printf " %s" s
+    | Ecst c -> printf " " ; print_cte c
+    | Ebinop (o, e0, e1) -> printf " %s " (Hashtbl.find ops o) ;
+      print_expr e0 ; printf " " ; print_expr e1
+    | Elambda (args, e) -> printf " (\\" ;
+      List.iter (fun s -> printf "%s " s) args ; printf "-> " ; print_expr e ;
+      printf ")"
+    | Eif (cdt, e1, e2) -> printf " if " ; print_expr cdt ; printf " then " ;
+      print_expr e1 ; printf " else " ; print_expr e2
+    | Ereturn -> printf " ()"
+    | _ -> printf " _" in
   let print_def (s, l, e) =
     printf "%s(" s ;
     List.iter (fun s  -> printf "%s," s) l ;
@@ -94,7 +98,12 @@ let () =
   if !opt_print_tokens then
     print_tokens lb
   else (
-    let ast = Parser.file (Lexer.next_tokens None) lb in
+    let last_token = ref None in
+    let rec next_tokens lb =
+      let t = Lexer.next_tokens !last_token lb in
+      last_token := Some t ;
+      t in
+    let ast = Parser.file next_tokens lb in
     if !opt_print_ast then
       print_ast ast ) ;
   close_in c ;

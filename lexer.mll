@@ -64,6 +64,7 @@ rule next_tokens last_token = parse
   | '"'                     { CST (Cstr (string_of_list (string lexbuf))) }
   | "True"                  { CST (Cbool true) }
   | "False"                 { CST (Cbool false) }
+  | "()"                    { UNIT }
 
   | '('   { LB }
   | ')'   { RB }

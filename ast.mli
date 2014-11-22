@@ -17,6 +17,8 @@ type constant =
 
 and def = ident * ident list * expr
 
+(* TODO def <- ident * ELambda... *)
+(* TODO Elambda = ident * expr *)
 and expr =
   | Eident of ident
   | Ecst of constant
