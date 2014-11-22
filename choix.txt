@@ -1,0 +1,3 @@
+NEG dans lexer
+[], ()
+un seul ident
