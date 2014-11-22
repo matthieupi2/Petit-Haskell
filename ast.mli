@@ -19,6 +19,7 @@ and def = ident * ident list * expr
 
 (* TODO def <- ident * ELambda... *)
 (* TODO Elambda = ident * expr *)
+(* TODO Ereturn <- Ecst Cunit *)
 and expr =
   | Eident of ident
   | Ecst of constant

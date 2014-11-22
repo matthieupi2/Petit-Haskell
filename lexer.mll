@@ -65,6 +65,7 @@ rule next_tokens last_token = parse
   | "True"                  { CST (Cbool true) }
   | "False"                 { CST (Cbool false) }
   | "()"                    { UNIT }
+  | "[]"                    { EMPTY_LIST }
 
   | '('   { LB }
   | ')'   { RB }

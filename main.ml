@@ -73,6 +73,7 @@ let print_ast =
   let rec print_expr = function 
     | Eident s -> printf " %s" s
     | Ecst c -> printf " " ; print_cte c
+    | Elist l -> printf " [" ; List.iter print_expr l ; printf " ]"
     | Ebinop (o, e0, e1) -> printf " %s " (Hashtbl.find ops o) ;
       print_expr e0 ; printf " " ; print_expr e1
     | Elambda (args, e) -> printf " (\\" ;
@@ -81,6 +82,11 @@ let print_ast =
     | Eif (cdt, e1, e2) -> printf " if " ; print_expr cdt ; printf " then " ;
       print_expr e1 ; printf " else " ; print_expr e2
     | Ereturn -> printf " ()"
+    | Ecase (e, e0, hd, tl, e1) -> printf "case " ; print_expr e ;
+      printf " of\n | [] -> " ; print_expr e0 ; printf "\n | %s:%s -> " hd tl ;
+      print_expr e1 ; printf "\n"
+    | Edo l -> printf "{" ; List.iter (fun e -> printf "\n" ; print_expr e) l ;
+      printf "\n}"
     | _ -> printf " _" in
   let print_def (s, l, e) =
     printf "%s(" s ;
@@ -88,7 +94,7 @@ let print_ast =
     printf ")=\n" ;
     print_expr e in
   let rec print_file = function
-    | [] -> printf "#"
+    | [] -> ()
     | def0::q -> print_def def0 ; printf "\n\n" ; print_file q in
   print_file
 
