@@ -17,14 +17,12 @@ type constant =
 
 and def = ident * ident list * expr
 
-(* TODO def <- ident * ELambda... *)
-(* TODO Elambda = ident * expr *)
 (* TODO Ereturn <- Ecst Cunit *)
 and expr =
   | Eident of ident
   | Ecst of constant
   | Elist of expr list
-  | Eappli of expr list
+  | Eappli of expr * expr list
   | Elambda of ident list * expr
   | Ebinop of binop * expr * expr
   | Eif of expr * expr * expr

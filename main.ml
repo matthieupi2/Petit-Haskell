@@ -74,8 +74,10 @@ let print_ast =
     | Eident s -> printf " %s" s
     | Ecst c -> printf " " ; print_cte c
     | Elist l -> printf " [" ; List.iter print_expr l ; printf " ]"
+    | Eappli (f, args) -> print_expr f ; printf "(" ;
+    List.iter (fun e -> print_expr e ; printf ",") args ; printf " )"
     | Elambda (args, e) -> printf " (\\" ;
-      List.iter (fun s -> printf "%s " s) args ; printf "-> " ; print_expr e ;
+      List.iter (fun s -> printf " %s" s) args ; printf " ->" ; print_expr e ;
       printf ")"
     | Ebinop (o, e0, e1) -> printf " %s" (Hashtbl.find ops o) ;
       print_expr e0 ; print_expr e1
@@ -90,11 +92,10 @@ let print_ast =
     | Edo l -> printf "{" ; List.iter (fun e -> printf "\n" ; print_expr e) l ;
       printf "\n}"
     | Ereturn -> printf " ()"
-    | _ -> printf " _"
-  and print_def (s, l, e) =
-    printf "%s(" s ;
-    List.iter (fun s  -> printf "%s," s) l ;
-    printf ")=\n" ;
+  and print_def (s, l, e) = ( match l with
+    | [] -> printf "%s=\n" s
+    | _ -> printf "%s(" s ; List.iter (fun s  -> printf "%s," s) l ;
+      printf ")=\n" ) ;
     print_expr e in
   let rec print_file = function
     | [] -> ()
