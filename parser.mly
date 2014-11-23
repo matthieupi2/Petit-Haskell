@@ -23,7 +23,7 @@
 %left PLUS MINUS
 %left TIMES
 %nonassoc NEG
-%left fun_appli
+(* %left fun_appli *)
 
 %start file
 
@@ -56,7 +56,7 @@ expr_list:
 (* TODO Ereturn = Ecst Cunit *)
 expr:
   | se=simple_expr                        { se }
-  | se=simple_expr args=simple_expr+ %prec fun_appli
+  | se=simple_expr args=simple_expr+ (* %prec fun_appli *)
                                           { Eappli (se, args) }
   | LAMBDA args=IDENT1* ARROW e=expr      { Elambda (args, e) } 
   | NEG e=expr                            { Ebinop (Bsub, Ecst (Cint 0), e) }
