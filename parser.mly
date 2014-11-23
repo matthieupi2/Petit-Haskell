@@ -58,7 +58,7 @@ expr:
   | se=simple_expr                        { se }
   | se=simple_expr args=simple_expr+ (* %prec fun_appli *)
                                           { Eappli (se, args) }
-  | LAMBDA args=IDENT1* ARROW e=expr      { Elambda (args, e) } 
+  | LAMBDA args=IDENT1+ ARROW e=expr      { Elambda (args, e) } 
   | NEG e=expr                            { Ebinop (Bsub, Ecst (Cint 0), e) }
   | e0=expr o=op e1=expr                  { Ebinop (o, e0, e1) }
   | IF cdt=expr THEN e1=expr ELSE e2=expr { Eif (cdt, e1, e2) }
