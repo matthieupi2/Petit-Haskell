@@ -4,7 +4,6 @@
 open Format
 open Lexing
 open Parser
-(* TODO inutile ? *)
 open Ast
 
 let usage = "usage : petitghc [options] file.hs"

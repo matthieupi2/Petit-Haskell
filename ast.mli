@@ -17,7 +17,6 @@ type constant =
 
 and def = ident * ident list * expr
 
-(* TODO Ereturn <- Ecst Cunit *)
 and expr =
   | Eident of ident
   | Ecst of constant

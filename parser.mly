@@ -52,8 +52,6 @@ expr_list:
   | e=expr COMMA le=expr_list { e::le }
   | e=expr                    { [e] } ;
 
-(* TODO simple_expr *)
-(* TODO Ereturn = Ecst Cunit *)
 expr:
   | se=simple_expr                        { se }
   | se=simple_expr args=simple_expr+ (* %prec fun_appli *)
