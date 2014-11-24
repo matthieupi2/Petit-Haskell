@@ -1,5 +1,6 @@
 %{
   open Ast
+  open Error
 %}
 
 %token <string> IDENT0 IDENT1
@@ -32,7 +33,8 @@
 %%
 
 file:
-  | ldef0=def0* EOF { ldef0 } ;
+  | ldef0=def0* EOF { ldef0 }
+  | error           { raise (ParserError "") } ;
 
 def0:
   | s0=IDENT0 ls1=IDENT1* ASSIGN e=expr { (s0, ls1, e) } ;

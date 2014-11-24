@@ -5,10 +5,7 @@
   open Lexing
   open Ast
   open Parser
-
-  exception Error of string
-(* TODO décentraliser CompilerError *)
-  exception CompilerError of string
+  open Error
 
   let kwd = Hashtbl.create 17
   let () = List.iter (fun (k,t) -> Hashtbl.add kwd k t)
@@ -58,8 +55,8 @@ rule next_tokens last_token = parse
       CST (Cint (int_of_string s))
     with _ -> raise (CompilerError ("constant too large: " ^ s)) }
   | '\''(car as s)'\''      { CST (Cchar (unescape s)) }
-  | '\'' car _              { raise (Error "missing \"'\"") }
-  | '\'' (wrongEscape as s) { raise (Error
+  | '\'' car _              { raise (LexerError "missing \"'\"") }
+  | '\'' (wrongEscape as s) { raise (LexerError
     ("'" ^ s ^ "' is not a escape character")) }
   | '"'                     { CST (Cstr (string_of_list (string lexbuf))) }
   | "True"                  { CST (Cbool true) }
@@ -97,18 +94,18 @@ rule next_tokens last_token = parse
   | "&&"  { AND }
 
   | eof     { EOF }
-  | _ as c  { raise (Error ("illegal character: " ^ String.make 1 c)) }
+  | _ as c  { raise (LexerError ("illegal character: " ^ String.make 1 c)) }
 
 and comment last_token = parse
   | '\n'  { new_line lexbuf ; next_tokens last_token lexbuf }
-  | eof   { raise (Error "unterminated comment") }
+  | eof   { raise (LexerError "unterminated comment") }
   | _     { comment last_token lexbuf }
 
 and string = parse
   | (car as s)        { unescape s::(string lexbuf) }
-  | wrongEscape as s  { raise (Error
+  | wrongEscape as s  { raise (LexerError
     ("'" ^ s ^ "' is not a escape character")) }
   | '"'               { [] }
-  | eof               { raise (Error "unterminated string") }
-  | _ as c            { raise (Error (
+  | eof               { raise (LexerError "unterminated string") }
+  | _ as c            { raise (LexerError (
     "illegal character in a string: " ^ String.make 1 c)) }

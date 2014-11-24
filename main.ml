@@ -1,10 +1,14 @@
 
 (* Programme principal *)
 
+(* TODO Délocaliser les fonctions print_* *)
+(* TODO --parse-only *)
+
 open Format
 open Lexing
 open Parser
 open Ast
+open Error
 
 let usage = "usage : petitghc [options] file.hs"
 
@@ -101,19 +105,37 @@ let print_ast =
     | def0::q -> print_def def0 ; printf "\n\n" ; print_file q in
   print_file
 
+let print_loc lb =
+  let b = lexeme_start_p lb in
+  let e = lexeme_end_p lb in
+  eprintf "File \"%s\", line %d, characters %d-%d:\n" file b.pos_lnum
+    (b.pos_cnum - b.pos_bol + 1) (e.pos_cnum - b.pos_bol + 1)
+
 let () =
-  let c = open_in file in
-  let lb = Lexing.from_channel c in 
-  if !opt_print_tokens then
-    print_tokens lb
-  else (
-    let last_token = ref None in
-    let rec next_tokens lb =
-      let t = Lexer.next_tokens !last_token lb in
-      last_token := Some t ;
-      t in
-    let ast = Parser.file next_tokens lb in
-    if !opt_print_ast then
-      print_ast ast ) ;
-  close_in c ;
-  exit 0 
+  try (
+    let c = open_in file in
+    let lb = Lexing.from_channel c in 
+    try (
+      if !opt_print_tokens then
+        print_tokens lb
+      else (
+        let last_token = ref None in
+        let rec next_tokens lb =
+          let t = Lexer.next_tokens !last_token lb in
+          last_token := Some t ;
+          t in
+        let ast = Parser.file next_tokens lb in
+        if !opt_print_ast then
+          print_ast ast ) ;
+      close_in c ;
+      exit 0 )
+    with
+      | LexerError s -> print_loc lb ; eprintf "lexical error: %s@." s ;
+        exit 1
+      | ParserError s -> print_loc lb ; eprintf "syntax error: %s@." s ;
+        exit 1
+      | CompilerError s -> print_loc lb ; eprintf "anomaly: %s@." s ;
+        exit 2 )
+  with
+    | _ as exc -> eprintf "Anomaly: %s\n@." (Printexc.to_string exc) ;
+      exit 2

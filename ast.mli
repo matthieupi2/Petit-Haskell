@@ -1,7 +1,7 @@
 
 (* Arbre de syntaxe abstraite de Petit Haskell *)
 
-(* il ne semble pas a priori nécessaire de pouvoir distinguer ident0 de ident1 *)
+(* il ne semble pas a priori nécessaire de distinguer ident0 de ident1 *)
 type ident = string
 
 type binop =
