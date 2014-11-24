@@ -61,7 +61,8 @@ let print_tokens lb =
           with Not_found -> "_" in
         printf "%s " s ) ;
       aux q in
-  aux (digere_lexer None)
+  aux (digere_lexer None) ;
+  printf "@."
 
 let ops = Hashtbl.create 17
 let () = List.iter (fun (o,s) -> Hashtbl.add ops o s )
@@ -104,7 +105,7 @@ let print_ast =
     print_expr e in
   let rec print_file = function
     | [] -> ()
-    | def0::q -> print_def def0 ; printf "\n\n" ; print_file q in
+    | def0::q -> print_def def0 ; printf "\n\n@." ; print_file q in
   print_file
 
 let print_loc lb =
