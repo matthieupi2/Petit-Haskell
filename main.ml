@@ -12,10 +12,12 @@ open Error
 
 let usage = "usage : petitghc [options] file.hs"
 
+let opt_parse_only = ref false
 let opt_print_tokens = ref false
 let opt_print_ast = ref false
 
 let spec = [
+  "--parse-only", Arg.Set opt_parse_only, " s'arrête après le parsing" ;
   "--print-tokens", Arg.Set opt_print_tokens, " affiche le résultat du lexing" ;
   "--print-ast", Arg.Set opt_print_ast, " affiche le résultat du parser" ]
 
@@ -128,7 +130,10 @@ let () =
         if !opt_print_ast then
           print_ast ast ) ;
       close_in c ;
-      exit 0 )
+      if !opt_parse_only then
+        exit 0
+      else
+        raise (CompilerError "compilateur inexistant") )
     with
       | LexerError s -> print_loc lb ; eprintf "lexical error: %s@." s ;
         exit 1
