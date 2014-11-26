@@ -11,3 +11,4 @@ parser.automaton
 *.hs
 *.native
 _build
+.depend
