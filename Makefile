@@ -23,7 +23,7 @@ parser.mli: parser.mly ast.cmi error.cmo
 	menhir --infer parser.mly
 
 clean:
-	rm -f *.cm[io] *~ .depend petitghc $(GENERATED)
+	rm -f *.cm[io] *~ .depend petitghc main.native $(GENERATED)
 
 .depend: $(GENERATED)
 	ocamldep *.ml *.mli > .depend

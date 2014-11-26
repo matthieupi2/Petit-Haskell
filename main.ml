@@ -52,10 +52,12 @@ let print_tokens lb =
       | IDENT1 s -> printf "id1<%s> " s
       | CST c -> ( match c with
         | Cint n -> printf "int<%d> " n
-        | Cchar c -> printf "char<%c> " c
+        | Cchar c -> printf "char<%s> " (Char.escaped c)
         | Cbool true -> printf "bool<True> "
-        | Cbool false -> printf "bool<False> "
-        | Cstr s -> printf "string<%s> " s )
+        | Cbool false -> printf "bool<False> " )
+      | STRING (Elist l) -> printf "list[" ;
+        List.iter (function Ecst (Cchar c) -> printf "%s,"
+          (Char.escaped c) | _ -> ()) l ; printf "] "
       | t -> let s = try
             Hashtbl.find toks t
           with Not_found -> "_" in
@@ -72,8 +74,7 @@ let () = List.iter (fun (o,s) -> Hashtbl.add ops o s )
 let print_ast =
   let print_cte = function
     | Cint i -> print_int i
-    | Cchar c -> printf "'%c'" c
-    | Cstr s -> printf "\"%s\"" s
+    | Cchar c -> printf "'%s'" (Char.escaped c)
     | Cbool true -> printf "True"
     | Cbool false -> printf "False" in
   let rec print_expr = function 

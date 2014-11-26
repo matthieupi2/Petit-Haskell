@@ -58,7 +58,7 @@ rule next_tokens last_token = parse
   | '\'' car _              { raise (LexerError "missing \"'\"") }
   | '\'' (wrongEscape as s) { raise (LexerError
     ("'" ^ s ^ "' is not a escape character")) }
-  | '"'                     { CST (Cstr (string_of_list (string lexbuf))) }
+  | '"'                     { STRING (Elist (string lexbuf)) }
   | "True"                  { CST (Cbool true) }
   | "False"                 { CST (Cbool false) }
 
@@ -92,8 +92,7 @@ rule next_tokens last_token = parse
   | "&&"  { AND }
 
   | eof     { EOF }
-  | _ as c  { raise (LexerError (
-    "illegal character: " ^ String.escaped (String.make 1 c))) }
+  | _ as c  { raise (LexerError ("illegal character: " ^ Char.escaped c)) }
 
 and comment last_token = parse
   | '\n'  { new_line lexbuf ; next_tokens last_token lexbuf }
@@ -101,10 +100,10 @@ and comment last_token = parse
   | _     { comment last_token lexbuf }
 
 and string = parse
-  | (car as s)        { unescape s::(string lexbuf) }
+  | (car as s)        { Ecst (Cchar (unescape s))::(string lexbuf) }
   | wrongEscape as s  { raise (LexerError
     ("'" ^ s ^ "' is not a escape character")) }
   | '"'               { [] }
   | eof               { raise (LexerError "unterminated string") }
   | _ as c            { raise (LexerError (
-    "illegal character in a string: " ^ String.escaped (String.make 1 c))) }
+    "illegal character in a string: " ^ Char.escaped c)) }

@@ -12,7 +12,6 @@ type binop =
 type constant =
   | Cint of int
   | Cchar of char
-  | Cstr of string
   | Cbool of bool
 
 and def = ident * ident list * expr

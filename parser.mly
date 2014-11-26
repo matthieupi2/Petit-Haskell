@@ -8,6 +8,7 @@
 
 %token <string> IDENT0 IDENT1
 %token <Ast.constant> CST
+%token <Ast.expr> STRING
 %token ELSE IF IN LET CASE OF THEN RETURN DO
 %token LB RB LSB RSB LCB RCB
 %token ARROW SEMI COLON COMMA LAMBDA ASSIGN
@@ -48,6 +49,7 @@ simple_expr:
   | LB e=expr RB                          { e }
   | s1=IDENT1                             { Eident s1 }
   | c=CST                                 { Ecst c }
+  | e=STRING                              { e }
   | LSB l=separated_list(COMMA, expr) RSB { Elist l } ;
 
 expr:
