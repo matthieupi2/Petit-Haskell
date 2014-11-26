@@ -55,9 +55,11 @@ rule next_tokens last_token = parse
       CST (Cint (int_of_string s))
     with _ -> raise (CompilerError ("constant too large: " ^ s)) }
   | '\''(car as s)'\''      { CST (Cchar (unescape s)) }
-  | '\'' car _              { raise (LexerError "missing \"'\"") }
   | '\'' (wrongEscape as s) { raise (LexerError
     ("'" ^ s ^ "' is not a escape character")) }
+  | '\'' (_ as c) '\''             { raise (LexerError (
+    "illegal character between ': " ^ Char.escaped c)) }
+  | '\'' _ _              { raise (LexerError "missing \"'\"") }
   | '"'                     { STRING (Elist (string lexbuf)) }
   | "True"                  { CST (Cbool true) }
   | "False"                 { CST (Cbool false) }
