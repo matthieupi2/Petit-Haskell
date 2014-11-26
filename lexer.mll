@@ -61,8 +61,6 @@ rule next_tokens last_token = parse
   | '"'                     { CST (Cstr (string_of_list (string lexbuf))) }
   | "True"                  { CST (Cbool true) }
   | "False"                 { CST (Cbool false) }
-  | "()"                    { UNIT }
-  | "[]"                    { EMPTY_LIST }
 
   | '('   { LB }
   | ')'   { RB }
@@ -94,7 +92,8 @@ rule next_tokens last_token = parse
   | "&&"  { AND }
 
   | eof     { EOF }
-  | _ as c  { raise (LexerError ("illegal character: " ^ String.make 1 c)) }
+  | _ as c  { raise (LexerError (
+    "illegal character: " ^ String.escaped (String.make 1 c))) }
 
 and comment last_token = parse
   | '\n'  { new_line lexbuf ; next_tokens last_token lexbuf }
@@ -108,4 +107,4 @@ and string = parse
   | '"'               { [] }
   | eof               { raise (LexerError "unterminated string") }
   | _ as c            { raise (LexerError (
-    "illegal character in a string: " ^ String.make 1 c)) }
+    "illegal character in a string: " ^ String.escaped (String.make 1 c))) }

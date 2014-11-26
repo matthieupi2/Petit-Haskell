@@ -39,7 +39,7 @@ let () = List.iter (fun (t,s) -> Hashtbl.add toks t s )
    RSB, "]" ; LCB, "{" ; RCB, "}" ; ARROW, "->" ; SEMI, ";" ; COLON, ":" ;
    COMMA, "," ; LAMBDA, "\\" ; ASSIGN, "=" ; LT, "<" ; LEQ, "<=" ; GT, ">" ;
    GEQ, ">=" ; EQ, "==" ; NEQ, "/=" ; PLUS, "+" ; MINUS, "-" ; TIMES, "*" ;
-   OR, "||" ; AND, "&&" ; NEG, "-." ; EOF, "#" ; UNIT, "()"]
+   OR, "||" ; AND, "&&" ; NEG, "-." ; EOF, "#"]
 
 let print_tokens lb =
   let rec digere_lexer last_token = match Lexer.next_tokens last_token lb with
