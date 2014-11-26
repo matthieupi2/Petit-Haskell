@@ -120,8 +120,9 @@ let () =
     let c = open_in file in
     let lb = Lexing.from_channel c in 
     try (
-      if !opt_print_tokens then
-        print_tokens lb
+      if !opt_print_tokens then (
+        print_tokens lb ;
+        exit 0 )
       else (
         let last_token = ref None in
         let rec next_tokens lb =
