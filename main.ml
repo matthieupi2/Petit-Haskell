@@ -2,7 +2,6 @@
 (* Programme principal *)
 
 (* TODO Délocaliser les fonctions print_* *)
-(* TODO --parse-only *)
 
 open Format
 open Lexing

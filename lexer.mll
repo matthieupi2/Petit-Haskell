@@ -59,7 +59,7 @@ rule next_tokens last_token = parse
     ("'" ^ s ^ "' is not a escape character")) }
   | '\'' (_ as c) '\''             { raise (LexerError (
     "illegal character between ': " ^ Char.escaped c)) }
-  | '\'' _ _              { raise (LexerError "missing \"'\"") }
+  | '\'' _ _                { raise (LexerError "missing \"'\"") }
   | '"'                     { STRING (Elist (string lexbuf)) }
   | "True"                  { CST (Cbool true) }
   | "False"                 { CST (Cbool false) }
