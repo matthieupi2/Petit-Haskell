@@ -1,4 +1,4 @@
-
+﻿
 (* Arbre de syntaxe abstraite de Petit Haskell *)
 
 (* il ne semble pas a priori nécessaire de distinguer ident0 de ident1 *)
@@ -14,17 +14,21 @@ type constant =
   | Cchar of char
   | Cbool of bool
 
-and def = ident * ident list * expr
+and ldef =  {def : def; loc : Lexing.position * Lexing.position}
+
+and def = ident * ident list * lexpr
+
+and lexpr = {expr : expr; loc : Lexing.position * Lexing.position}
 
 and expr =
   | Eident of ident
   | Ecst of constant
-  | Elist of expr list
-  | Eappli of expr * expr list
-  | Elambda of ident list * expr
-  | Ebinop of binop * expr * expr
-  | Eif of expr * expr * expr
-  | Elet of def list * expr
-  | Ecase of expr * expr * ident * ident * expr
-  | Edo of expr list
+  | Elist of lexpr list
+  | Eappli of lexpr * lexpr list
+  | Elambda of ident list * lexpr
+  | Ebinop of binop * lexpr * lexpr
+  | Eif of lexpr * lexpr * lexpr
+  | Elet of ldef list * lexpr
+  | Ecase of lexpr * lexpr * ident * ident * lexpr
+  | Edo of lexpr list
   | Ereturn
