@@ -38,12 +38,12 @@ let () = List.iter (fun (t,s) -> Hashtbl.add toks t s )
    RSB, "]" ; LCB, "{" ; RCB, "}" ; ARROW, "->" ; SEMI, ";" ; COLON, ":" ;
    COMMA, "," ; LAMBDA, "\\" ; ASSIGN, "=" ; LT, "<" ; LEQ, "<=" ; GT, ">" ;
    GEQ, ">=" ; EQ, "==" ; NEQ, "/=" ; PLUS, "+" ; MINUS, "-" ; TIMES, "*" ;
-   OR, "||" ; AND, "&&" ; NEG, "-." ; EOF, "#"]
+   OR, "||" ; AND, "&&" ; EOF, "#"]
 
 let print_tokens lb =
-  let rec digere_lexer last_token = match Lexer.next_tokens last_token lb with
+  let rec digere_lexer () = match Lexer.next_tokens lb with
     | EOF -> [EOF]
-    | t -> t::digere_lexer (Some t) in
+    | t -> t::digere_lexer () in
   let rec aux = function
     | [] -> printf "@."
     | t::q -> ( match t with
@@ -62,7 +62,7 @@ let print_tokens lb =
           with Not_found -> "_" in
         printf "%s " s ) ;
       aux q in
-  aux (digere_lexer None) ;
+  aux (digere_lexer ()) ;
   printf "@."
 
 let ops = Hashtbl.create 17
@@ -123,12 +123,7 @@ let () =
         print_tokens lb ;
         exit 0 )
       else (
-        let last_token = ref None in
-        let rec next_tokens lb =
-          let t = Lexer.next_tokens !last_token lb in
-          last_token := Some t ;
-          t in
-        let ast = Parser.file next_tokens lb in
+        let ast = Parser.file Lexer.next_tokens lb in
         if !opt_print_ast then
           print_ast ast ) ;
       close_in c ;

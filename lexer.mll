@@ -44,10 +44,10 @@ let car = ['\032'-'\126']#['\\' '"'] | '\\'['\\' '"' 'n' 't']
 let wrongEscape = '\\'[^'\\' '"' 'n' 't']
 let ident = ['a'-'z'] (letter | digit | '_' | '\'')*
 
-rule next_tokens last_token = parse
-  | '\n'        { new_line lexbuf ; next_tokens last_token lexbuf }
-  | '\t' | ' '  { next_tokens last_token lexbuf }
-  | "--"        { comment last_token lexbuf }
+rule next_tokens = parse
+  | '\n'        { new_line lexbuf ; next_tokens lexbuf }
+  | '\t' | ' '  { next_tokens lexbuf }
+  | "--"        { comment lexbuf }
   
   | ident as s  { id s lexbuf }
 
@@ -85,9 +85,7 @@ rule next_tokens last_token = parse
   | "=="  { EQ }
   | "/="  { NEQ }
 
-  | '-'   { match last_token with
-    | Some (RB | RSB | RCB | IDENT1 _ | CST _) -> MINUS
-    | _ -> NEG }
+  | '-'   { MINUS }
   | '+'   { PLUS }
   | '*'   { TIMES }
   | "||"  { OR }
@@ -96,10 +94,10 @@ rule next_tokens last_token = parse
   | eof     { EOF }
   | _ as c  { raise (LexerError ("illegal character: " ^ Char.escaped c)) }
 
-and comment last_token = parse
-  | '\n'  { new_line lexbuf ; next_tokens last_token lexbuf }
+and comment = parse
+  | '\n'  { new_line lexbuf ; next_tokens lexbuf }
   | eof   { raise (LexerError "unterminated comment") }
-  | _     { comment last_token lexbuf }
+  | _     { comment lexbuf }
 
 and string = parse
   | (car as s)        { Ecst (Cchar (unescape s))::(string lexbuf) }

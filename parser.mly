@@ -14,7 +14,6 @@
 %token ARROW SEMI COLON COMMA LAMBDA ASSIGN
 %token LT LEQ GT GEQ EQ NEQ
 %token PLUS MINUS TIMES OR AND
-%token NEG
 %token EOF
 
 %nonassoc IN
@@ -26,7 +25,7 @@
 %right COLON
 %left PLUS MINUS
 %left TIMES
-%nonassoc NEG
+%nonassoc neg
 /* %left fun_appli */
 
 %start file
@@ -57,7 +56,7 @@ expr:
   | se=simple_expr args=simple_expr+ /* %prec fun_appli */
                                           { Eappli (se, args) }
   | LAMBDA args=IDENT1+ ARROW e=expr      { Elambda (args, e) } 
-  | NEG e=expr                            { Ebinop (Bsub, Ecst (Cint 0), e) }
+  | MINUS e=expr %prec neg                { Ebinop (Bsub, Ecst (Cint 0), e) }
   | e0=expr o=op e1=expr                  { Ebinop (o, e0, e1) }
   | IF cdt=expr THEN e1=expr ELSE e2=expr { Eif (cdt, e1, e2) }
   | LET l=liaisons IN e=expr              { Elet (l, e) }
