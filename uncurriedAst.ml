@@ -5,7 +5,8 @@
 open Error
 open Ast
 
-type udef = lident * luexpr
+(* TODO localiser les initialisations ? *)
+type udef = ident * luexpr
 
 and luexpr = {uexpr : uexpr; locu : Error.location}
 
@@ -17,7 +18,7 @@ and uexpr =
   | Ulambda of ident list * luexpr
   | Ubinop of binop * luexpr * luexpr
   | Uif of luexpr * luexpr * luexpr
-  | Ulet of udef * luexpr
+  | Ulet of udef list * luexpr
   | Ucase of luexpr * luexpr * ident * ident * luexpr
   | Udo of luexpr list
   | Ureturn
