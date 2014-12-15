@@ -6,7 +6,7 @@ open Ast
 
 type ident = string
 
-and lident = {ident : ident; loci : Lexing.position * Lexing.position}
+and lident = {ident : ident; loci : Error.location}
 
 type binop =
   | Badd | Bsub | Bmul
@@ -20,7 +20,7 @@ type constant =
 
 type def = lident * lexpr
 
-and lexpr = {expr : expr; loce : Lexing.position * Lexing.position}
+and lexpr = {expr : expr; loce : Error.location}
 
 and expr =
   | Eident of ident
@@ -35,6 +35,7 @@ and expr =
   | Edo of lexpr list   (* TODO couple d'expressions ? *)
   | Ereturn
 
+(*****************************************************************)
 
 module S = Set.Make(struct type t = Ast.ident
     let compare = Pervasives.compare end)
@@ -42,7 +43,14 @@ module M = Map.Make(struct type t = Ast.ident
     let compare = Pervasives.compare end)
 
 let are_different l =
-  assert false
+  let rec aux prev = function
+    | [] -> ()
+    | {ident=name; loci=loc}::q -> try
+        let first_def = M.find name prev in
+        raise (IdentError (name, loc, RedefArg first_def))
+      with Not_found ->
+        aux (M.add name loc prev) q in
+  aux M.empty l
 
 let rec uncurry_lambda args body =
   assert false
