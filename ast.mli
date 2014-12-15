@@ -18,8 +18,7 @@ type constant =
   | Cchar of char
   | Cbool of bool
 
-(* TODO inutile ? *)
-and ldef =  {def : def; locd : Lexing.position * Lexing.position}
+(* TODO and ldef =  {def : def; locd : Lexing.position * Lexing.position} *)
 
 and def = lident * lident list * lexpr
 
@@ -33,7 +32,7 @@ and expr =
   | Elambda of lident list * lexpr
   | Ebinop of binop * lexpr * lexpr
   | Eif of lexpr * lexpr * lexpr
-  | Elet of ldef list * lexpr
+  | Elet of def list * lexpr
   | Ecase of lexpr * lexpr * lident * lident * lexpr
   | Edo of lexpr list
   | Ereturn

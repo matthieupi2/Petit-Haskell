@@ -90,7 +90,7 @@ let print_ast =
     | Eif (cdt, e1, e2) -> printf " if " ; print_expr cdt ; printf " then " ;
       print_expr e1 ; printf " else " ; print_expr e2
     | Elet (ld, e) -> printf "let " ;
-      List.iter (fun d -> print_def d.def ; printf "\n") ld ; printf "in" ;
+      List.iter (fun d -> print_def d ; printf "\n") ld ; printf "in" ;
       print_expr e 
     | Ecase (e, e0, {ident = hd}, {ident = tl}, e1) -> printf "case " ; print_expr e ;
       printf " of\n | [] -> " ; print_expr e0 ; printf "\n | %s:%s -> " hd tl ;
@@ -105,7 +105,7 @@ let print_ast =
     print_expr e in
   let rec print_file = function
     | [] -> ()
-    | def0::q -> print_def def0.def ; printf "\n\n@." ; print_file q in
+    | def0::q -> print_def def0 ; printf "\n\n@." ; print_file q in
   print_file
 
 let print_loc lb =

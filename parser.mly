@@ -30,7 +30,7 @@
 
 %start file
 
-%type <Ast.ldef list> file
+%type <Ast.def list> file
 
 %%
 
@@ -39,12 +39,10 @@ file:
   | error           { raise (ParserError "unknown error") } ;
 
 def0:
-  | s0=lident0 ls1=lident1* ASSIGN e=lexpr { {def = (s0, ls1, e);
-      locd = $startpos, $endpos} } ;
+  | s0=lident0 ls1=lident1* ASSIGN e=lexpr { (s0, ls1, e) } ;
 
 def:
-  | s1=lident1 ls1=lident1* ASSIGN e=lexpr { {def = (s1, ls1, e);
-      locd = $startpos, $endpos} } ;
+  | s1=lident1 ls1=lident1* ASSIGN e=lexpr { (s1, ls1, e) } ;
 
 lident0:
   | s=IDENT0 { {ident = s; loci = $startpos, $endpos} } ;
