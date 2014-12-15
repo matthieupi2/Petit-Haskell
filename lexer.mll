@@ -100,7 +100,8 @@ and comment = parse
   | _     { comment lexbuf }
 
 and string = parse
-  | (car as s)        { Ecst (Cchar (unescape s))::(string lexbuf) }
+  | (car as s)        { {expr = Ecst (Cchar (unescape s)); loce = undef_loc}::
+      (string lexbuf) }
   | wrongEscape as s  { raise (LexerError
     ("'" ^ s ^ "' is not a escape character")) }
   | '"'               { [] }

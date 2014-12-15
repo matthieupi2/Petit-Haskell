@@ -12,3 +12,4 @@ parser.automaton
 *.native
 _build
 .depend
+*.swp

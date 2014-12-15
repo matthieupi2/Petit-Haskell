@@ -2,3 +2,5 @@ NEG dans lexer
 [], ()
 un seul ident -> ok
 error.ml
+
+Erreur incompréhensible dans le parser : binop inconnu (avec lbinop)

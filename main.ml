@@ -55,7 +55,7 @@ let print_tokens lb =
         | Cbool true -> printf "bool<True> "
         | Cbool false -> printf "bool<False> " )
       | STRING (Elist l) -> printf "list[" ;
-        List.iter (function Ecst (Cchar c) -> printf "%s,"
+        List.iter (function {expr = Ecst (Cchar c)} -> printf "%s,"
           (Char.escaped c) | _ -> ()) l ; printf "] "
       | t -> let s = try
             Hashtbl.find toks t
@@ -76,36 +76,36 @@ let print_ast =
     | Cchar c -> printf "'%s'" (Char.escaped c)
     | Cbool true -> printf "True"
     | Cbool false -> printf "False" in
-  let rec print_expr = function 
+  let rec print_expr e = match e.expr with 
     | Eident s -> printf " %s" s
     | Ecst c -> printf " " ; print_cte c
     | Elist l -> printf " [" ; List.iter print_expr l ; printf " ]"
     | Eappli (f, args) -> print_expr f ; printf "(" ;
     List.iter (fun e -> print_expr e ; printf ",") args ; printf " )"
     | Elambda (args, e) -> printf " (\\" ;
-      List.iter (fun s -> printf " %s" s) args ; printf " ->" ; print_expr e ;
+    List.iter (fun {ident = s} -> printf " %s" s) args ; printf " ->" ; print_expr e ;
       printf ")"
     | Ebinop (o, e0, e1) -> printf " %s" (Hashtbl.find ops o) ;
       print_expr e0 ; print_expr e1
     | Eif (cdt, e1, e2) -> printf " if " ; print_expr cdt ; printf " then " ;
       print_expr e1 ; printf " else " ; print_expr e2
     | Elet (ld, e) -> printf "let " ;
-      List.iter (fun d -> print_def d ; printf "\n") ld ; printf "in" ;
+      List.iter (fun d -> print_def d.def ; printf "\n") ld ; printf "in" ;
       print_expr e 
-    | Ecase (e, e0, hd, tl, e1) -> printf "case " ; print_expr e ;
+    | Ecase (e, e0, {ident = hd}, {ident = tl}, e1) -> printf "case " ; print_expr e ;
       printf " of\n | [] -> " ; print_expr e0 ; printf "\n | %s:%s -> " hd tl ;
       print_expr e1 ; printf "\n"
     | Edo l -> printf "{" ; List.iter (fun e -> printf "\n" ; print_expr e) l ;
       printf "\n}"
     | Ereturn -> printf " ()"
-  and print_def (s, l, e) = ( match l with
+  and print_def ({ident = s}, l, e) = ( match l with
     | [] -> printf "%s=\n" s
-    | _ -> printf "%s(" s ; List.iter (fun s  -> printf "%s," s) l ;
+    | _ -> printf "%s(" s ; List.iter (fun {ident = s}  -> printf "%s," s) l ;
       printf ")=\n" ) ;
     print_expr e in
   let rec print_file = function
     | [] -> ()
-    | def0::q -> print_def def0 ; printf "\n\n@." ; print_file q in
+    | def0::q -> print_def def0.def ; printf "\n\n@." ; print_file q in
   print_file
 
 let print_loc lb =
