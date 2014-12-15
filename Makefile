@@ -1,4 +1,4 @@
-CMO = error.cmo lexer.cmo parser.cmo main.cmo
+CMO = error.cmo lexer.cmo parser.cmo main.cmo uncurriedAst.cmo
 GENERATED = lexer.ml parser.ml parser.mli
 
 all: petitghc
