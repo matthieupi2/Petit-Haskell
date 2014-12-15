@@ -17,9 +17,9 @@ petitghc: $(CMO)
 lexer.ml: lexer.mll
 	ocamllex lexer.mll
 
-parser.ml: parser.mly ast.cmi error.cmo
+parser.ml: error.cmo parser.mly ast.cmi
 	menhir --infer parser.mly
-parser.mli: parser.mly ast.cmi error.cmo
+parser.mli: error.cmo parser.mly ast.cmi
 	menhir --infer parser.mly
 
 clean:

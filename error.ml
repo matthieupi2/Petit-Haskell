@@ -1,3 +1,5 @@
+type location = Lexing.position * Lexing.position
+
 exception LexerError of string
 exception ParserError of string
 exception CompilerError of string

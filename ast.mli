@@ -3,7 +3,7 @@
 
 type ident = string
 
-and lident = {ident : ident; loci : Lexing.position * Lexing.position}
+and lident = {ident : ident; loci : Error.location}
 
 type binop =
   | Badd | Bsub | Bmul
@@ -20,9 +20,9 @@ type constant =
 
 (* TODO and ldef =  {def : def; locd : Lexing.position * Lexing.position} *)
 
-and def = lident * lident list * lexpr
+type def = lident * lident list * lexpr
 
-and lexpr = {expr : expr; loce : Lexing.position * Lexing.position}
+and lexpr = {expr : expr; loce : Error.location}
 
 and expr =
   | Eident of ident
