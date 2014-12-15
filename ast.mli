@@ -29,7 +29,7 @@ and expr =
   | Ecst of constant
   | Elist of lexpr list
   | Eappli of lexpr * lexpr list
-  | Elambda of lident list * lexpr
+  | Elambda of lident list * lexpr (* TODO expr ? *)
   | Ebinop of binop * lexpr * lexpr
   | Eif of lexpr * lexpr * lexpr
   | Elet of def list * lexpr

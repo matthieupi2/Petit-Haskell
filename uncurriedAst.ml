@@ -1,39 +1,26 @@
 
-(* Ast décurrifié et certifié sans répétition erronée d'identifiants *)
+(* Ast : -applications décurrifiées
+ * -certifié sans répétition erronée d'identifiants *)
 
 open Error
 open Ast
 
-type ident = string
+type udef = lident * luexpr
 
-and lident = {ident : ident; loci : Error.location}
+and luexpr = {uexpr : uexpr; locu : Error.location}
 
-type binop =
-  | Badd | Bsub | Bmul
-  | Blt | Bleq | Bgt | Bgeq | Beq | Bneq
-  | Band | Bor | Bcol
-
-type constant =
-  | Cint of int
-  | Cchar of char
-  | Cbool of bool
-
-type def = lident * lexpr
-
-and lexpr = {expr : expr; loce : Error.location}
-
-and expr =
-  | Eident of ident
-  | Ecst of constant
-  | Elist of lexpr list
-  | Eappli of lexpr * lexpr
-  | Elambda of lident * lexpr
-  | Ebinop of binop * lexpr * lexpr
-  | Eif of lexpr * lexpr * lexpr
-  | Elet of def * lexpr
-  | Ecase of lexpr * lexpr * lident * lident * lexpr
-  | Edo of lexpr list   (* TODO couple d'expressions ? *)
-  | Ereturn
+and uexpr =
+  | Uident of ident
+  | Ucst of constant
+  | Ulist of luexpr list
+  | Uappli of luexpr * luexpr
+  | Ulambda of ident list * luexpr
+  | Ubinop of binop * luexpr * luexpr
+  | Uif of luexpr * luexpr * luexpr
+  | Ulet of udef * luexpr
+  | Ucase of luexpr * luexpr * ident * ident * luexpr
+  | Udo of luexpr list
+  | Ureturn
 
 (*****************************************************************)
 
@@ -42,18 +29,16 @@ module S = Set.Make(struct type t = Ast.ident
 module M = Map.Make(struct type t = Ast.ident
     let compare = Pervasives.compare end)
 
+(* Renvoie une liste d'identifiants non localisés (si pas d'erreurs) *)
 let are_different l =
   let rec aux prev = function
-    | [] -> ()
+    | [] -> []
     | {ident=name; loci=loc}::q -> try
         let first_def = M.find name prev in
         raise (IdentError (name, loc, RedefArg first_def))
       with Not_found ->
-        aux (M.add name loc prev) q in
+        name::aux (M.add name loc prev) q in
   aux M.empty l
-
-let rec uncurry_lambda args body =
-  assert false
 
 let rec uncurry_expr e =
   assert false
@@ -68,7 +53,6 @@ let uncurry ast =
         let first_def = M.find name env in
         raise (IdentError (name, loc, RedefGlobal first_def))
       with Not_found ->
-        are_different args ;
-        (name, uncurry_lambda args (uncurry_expr body))::
+        (name, Ulambda (are_different args, uncurry_expr body))::
             (aux (M.add name loc env) q) in
   aux M.empty ast
