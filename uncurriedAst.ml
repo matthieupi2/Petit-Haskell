@@ -41,11 +41,29 @@ let are_different l =
         name::aux (M.add name loc prev) q in
   aux M.empty l
 
-let rec uncurry_expr e =
+let rec uncurry_appli f args =
   assert false
 
-let uncurry ast =
-  let primitives = S.of_list ["div" ; "rem" ; "putChar" ; "error" ] in
+let rec uncurry_expr e =
+  let ue = match e.expr with
+    | Eident ident -> Uident ident
+    | Ecst c  -> Ucst c
+    | Elist l -> Ulist (List.map uncurry_expr l)
+    | Eappli (f, args) -> uncurry_appli f args
+    | Elambda (args, body) -> Ulambda (are_different args, uncurry_expr body)
+    | Ebinop (o, e1, e2) -> Ubinop (o, uncurry_expr e1, uncurry_expr e2)
+    | Eif (cdt, e1, e2) ->
+        Uif (uncurry_expr cdt, uncurry_expr e1, uncurry_expr e2)
+    | Elet (defs, e) -> Ulet (uncurry defs S.empty, uncurry_expr e)
+    | Ecase (_,_, hd, tl,_) when hd.ident = tl.ident ->
+        raise (IdentError (tl.ident, tl.loci, RedefArg hd.loci))
+    | Ecase (e0, e1, hd, tl, e2) -> Ucase (uncurry_expr e0, uncurry_expr e1,
+        hd.ident, tl.ident, uncurry_expr e2)
+    | Edo l -> Udo (List.map uncurry_expr l)
+    | Ereturn -> Ureturn in
+  {uexpr = ue; locu = e.loce}
+
+and uncurry ast primitives =
   let rec aux env = function
     | []  -> []
     | ({ident=name; loci=loc},_,_)::q when S.mem name primitives ->
@@ -54,6 +72,6 @@ let uncurry ast =
         let first_def = M.find name env in
         raise (IdentError (name, loc, RedefGlobal first_def))
       with Not_found ->
-        (name, Ulambda (are_different args, uncurry_expr body))::
-            (aux (M.add name loc env) q) in
+        (name, {uexpr = Ulambda (are_different args, uncurry_expr body);
+            locu = loc})::(aux (M.add name loc env) q) in
   aux M.empty ast
