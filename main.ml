@@ -24,7 +24,7 @@ let spec = [
       " s'arrête après la décurrification" ;
   "--print-tokens", Arg.Set opt_print_tokens, " affiche le résultat du lexing" ;
   "--print-ast", Arg.Set opt_print_ast, " affiche le résultat du parser" ;
-  "--print-ast-uncurried", Arg.Set opt_print_uncurried_ast,
+  "--print-uncurried-ast", Arg.Set opt_print_uncurried_ast,
       " affiche le résultat de la décurrification" ]
 
 let file =
@@ -112,7 +112,7 @@ let print_ast =
     print_expr e in
   let rec print_file = function
     | [] -> ()
-    | def0::q -> print_def def0 ; printf "\n\n@." ; print_file q in
+    | def0::q -> print_def def0 ; printf "\n@." ; print_file q in
   print_file
 
 let print_uncurried_ast =
@@ -125,7 +125,7 @@ let print_uncurried_ast =
     | Uident s -> printf " %s" s
     | Ucst c -> printf " " ; print_cte c
     | Ulist l -> printf " [" ; List.iter print_expr l ; printf " ]"
-    | Uappli (f, arg) -> print_expr f ; printf "(" ; print_expr e ; printf " )"
+    | Uappli (f, arg) -> print_expr f ; printf "(" ; print_expr arg ; printf " )"
     | Ulambda (args, e) -> printf " (\\" ;
     List.iter (fun s -> printf " %s" s) args ; printf " ->" ; print_expr e ;
       printf ")"
@@ -145,15 +145,8 @@ let print_uncurried_ast =
   and print_def (s, e) = printf "%s=\n" s ; print_expr e in
   let rec print_file = function
     | [] -> ()
-    | def0::q -> print_def def0 ; printf "\n\n@." ; print_file q in
+    | def0::q -> print_def def0 ; printf "\n@." ; print_file q in
   print_file
-
-(* TODO Délocaliser dans Error *)
-let print_loc lb =
-  let b = lexeme_start_p lb in
-  let e = lexeme_end_p lb in
-  eprintf "File \"%s\", line %d, characters %d-%d:\n" file b.pos_lnum
-    (b.pos_cnum - b.pos_bol + 1) (e.pos_cnum - b.pos_bol + 1)
 
 let () =
   try
