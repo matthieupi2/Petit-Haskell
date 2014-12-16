@@ -7,18 +7,25 @@ open Format
 open Lexing
 open Parser
 open Ast
+open UncurriedAst
 open Error
 
 let usage = "usage : petitghc [options] file.hs"
 
 let opt_parse_only = ref false
+let opt_uncurry_only = ref false
 let opt_print_tokens = ref false
 let opt_print_ast = ref false
+let opt_print_uncurried_ast = ref false
 
 let spec = [
   "--parse-only", Arg.Set opt_parse_only, " s'arrête après le parsing" ;
+  "--uncurry-only", Arg.Set opt_uncurry_only,
+      " s'arrête après la décurrification" ;
   "--print-tokens", Arg.Set opt_print_tokens, " affiche le résultat du lexing" ;
-  "--print-ast", Arg.Set opt_print_ast, " affiche le résultat du parser" ]
+  "--print-ast", Arg.Set opt_print_ast, " affiche le résultat du parser" ;
+  "--print-ast-uncurried", Arg.Set opt_print_uncurried_ast,
+      " affiche le résultat de la décurrification" ]
 
 let file =
   let file = ref None in
@@ -108,6 +115,10 @@ let print_ast =
     | def0::q -> print_def def0 ; printf "\n\n@." ; print_file q in
   print_file
 
+let print_uncurried_ast uast =
+  assert false
+
+(* TODO Délocaliser dans Error *)
 let print_loc lb =
   let b = lexeme_start_p lb in
   let e = lexeme_end_p lb in
@@ -115,29 +126,34 @@ let print_loc lb =
     (b.pos_cnum - b.pos_bol + 1) (e.pos_cnum - b.pos_bol + 1)
 
 let () =
-  try (
+  try
     let c = open_in file in
     let lb = Lexing.from_channel c in 
-    try (
+    try
       if !opt_print_tokens then (
         print_tokens lb ;
         exit 0 )
       else (
         let ast = Parser.file Lexer.next_tokens lb in
+        close_in c ;
         if !opt_print_ast then
-          print_ast ast ) ;
-      close_in c ;
-      if !opt_parse_only then
-        exit 0
-      else
+          print_ast ast ;
+        if !opt_parse_only then
+          exit 0 ;
+        let uncurried_ast = uncurry_list_def ast in
+        if !opt_print_uncurried_ast then
+          print_uncurried_ast uncurried_ast ;
+        if !opt_uncurry_only then
+          exit 0 ;
         raise (CompilerError "compilateur inexistant") )
     with
+      (* Délocaliser dans Error *)
       | LexerError s -> print_loc lb ; eprintf "lexical error: %s@." s ;
         exit 1
       | ParserError s -> print_loc lb ; eprintf "syntax error: %s@." s ;
         exit 1
       | CompilerError s -> print_loc lb ; eprintf "anomaly: %s@." s ;
-        exit 2 )
+        exit 2
   with
     | _ as exc -> eprintf "Anomaly: %s\n@." (Printexc.to_string exc) ;
       exit 2
