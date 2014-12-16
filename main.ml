@@ -162,10 +162,10 @@ let () =
     try
       if !opt_print_tokens then (
         print_tokens lb ;
-        exit 0 )
-      else (
-        let ast = Parser.file Lexer.next_tokens lb in
-        close_in c ;
+        exit 0 ) ;
+      let ast = Parser.file Lexer.next_tokens lb in
+      close_in c ;
+      try
         if !opt_print_ast then
           print_ast ast ;
         if !opt_parse_only then
@@ -177,15 +177,8 @@ let () =
           print_uncurried_ast uncurried_ast ;
         if !opt_uncurry_only then
           exit 0 ;
-        raise (CompilerError "compilateur inexistant") )
-    with
-      (* Délocaliser dans Error *)
-      | LexerError s -> print_loc lb ; eprintf "lexical error: %s@." s ;
-        exit 1
-      | ParserError s -> print_loc lb ; eprintf "syntax error: %s@." s ;
-        exit 1
-      | CompilerError s -> print_loc lb ; eprintf "anomaly: %s@." s ;
-        exit 2
-  with
-    | _ as exc -> eprintf "Anomaly: %s\n@." (Printexc.to_string exc) ;
-      exit 2
+        raise (CompilerError "compilateur inexistant")
+      with e -> Error.error e
+    with e -> Error.error_before_parsing lb e ;
+  with exc -> eprintf "Anomaly: %s\n@." (Printexc.to_string exc) ;
+      exit 2 (* TODO délocaliser ? *)
