@@ -14,7 +14,7 @@ and uexpr =
   | Uident of ident
   | Ucst of constant
   | Ulist of luexpr list
-  | Uappli of luexpr * luexpr
+  | Uappli of luexpr * luexpr (* TODO localiser ? *)
   | Ulambda of ident list * luexpr
   | Ubinop of binop * luexpr * luexpr
   | Uif of luexpr * luexpr * luexpr
@@ -41,10 +41,17 @@ let uncurry_args l =
         name::aux (M.add name loc prev) q in
   aux M.empty l
 
-let rec uncurry_appli f args =
-  assert false
+let rec uncurry_appli f = function
+  | [] -> raise (CompilerError "function without argument")
+  | fst_arg::args -> let create_uappli f a =
+      let a = uncurry_expr a in
+      {uexpr = Uappli (f, a); locu = (fst f.locu, snd a.locu)} in
+    let rec uncurry uncurried_expr = function
+      | [] -> uncurried_expr.uexpr  (* uncurry_expr retrouve locu *)
+      | t::q -> uncurry (create_uappli uncurried_expr t) q in
+    uncurry (create_uappli (uncurry_expr f) fst_arg) args
 
-let rec uncurry_expr e =
+and uncurry_expr e =
   let ue = match e.expr with
     | Eident ident -> Uident ident
     | Ecst c  -> Ucst c
