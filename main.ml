@@ -115,8 +115,38 @@ let print_ast =
     | def0::q -> print_def def0 ; printf "\n\n@." ; print_file q in
   print_file
 
-let print_uncurried_ast uast =
-  assert false
+let print_uncurried_ast =
+  let print_cte = function
+    | Cint i -> print_int i
+    | Cchar c -> printf "'%s'" (Char.escaped c)
+    | Cbool true -> printf "True"
+    | Cbool false -> printf "False" in
+  let rec print_expr e = match e.uexpr with 
+    | Uident s -> printf " %s" s
+    | Ucst c -> printf " " ; print_cte c
+    | Ulist l -> printf " [" ; List.iter print_expr l ; printf " ]"
+    | Uappli (f, arg) -> print_expr f ; printf "(" ; print_expr e ; printf " )"
+    | Ulambda (args, e) -> printf " (\\" ;
+    List.iter (fun s -> printf " %s" s) args ; printf " ->" ; print_expr e ;
+      printf ")"
+    | Ubinop (o, e0, e1) -> printf " %s" (Hashtbl.find ops o) ;
+      print_expr e0 ; print_expr e1
+    | Uif (cdt, e1, e2) -> printf " if " ; print_expr cdt ; printf " then " ;
+      print_expr e1 ; printf " else " ; print_expr e2
+    | Ulet (ld, e) -> printf "let " ;
+      List.iter (fun d -> print_def d ; printf "\n") ld ; printf "in" ;
+      print_expr e 
+    | Ucase (e, e0, hd, tl, e1) -> printf "case " ; print_expr e ;
+      printf " of\n | [] -> " ; print_expr e0 ; printf "\n | %s:%s -> " hd tl ;
+      print_expr e1 ; printf "\n"
+    | Udo l -> printf "{" ; List.iter (fun e -> printf "\n" ; print_expr e) l ;
+      printf "\n}"
+    | Ureturn -> printf " ()"
+  and print_def (s, e) = printf "%s=\n" s ; print_expr e in
+  let rec print_file = function
+    | [] -> ()
+    | def0::q -> print_def def0 ; printf "\n\n@." ; print_file q in
+  print_file
 
 (* TODO Délocaliser dans Error *)
 let print_loc lb =
@@ -140,7 +170,9 @@ let () =
           print_ast ast ;
         if !opt_parse_only then
           exit 0 ;
-        let uncurried_ast = uncurry_list_def ast in
+        let primitives =
+            UncurriedAst.S.of_list ["div" ; "rem" ; "putChar" ; "error"] in
+        let uncurried_ast = uncurry_list_def ast primitives in
         if !opt_print_uncurried_ast then
           print_uncurried_ast uncurried_ast ;
         if !opt_uncurry_only then
