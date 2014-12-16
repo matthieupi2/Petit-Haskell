@@ -178,7 +178,7 @@ let () =
         if !opt_uncurry_only then
           exit 0 ;
         raise (CompilerError "compilateur inexistant")
-      with e -> Error.error e
-    with e -> Error.error_before_parsing lb e ;
+      with e -> Error.error file e
+    with e -> Error.error_before_parsing file lb e ;
   with exc -> eprintf "Anomaly: %s\n@." (Printexc.to_string exc) ;
       exit 2 (* TODO délocaliser ? *)

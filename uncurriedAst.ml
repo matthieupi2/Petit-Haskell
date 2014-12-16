@@ -78,7 +78,7 @@ and uncurry_list_def ast primitives =
         raise (IdentError (name, loc, RedefPrimitive))
     | ({ident=name; loci=loc}, args, body)::q -> try
         let first_def = M.find name env in
-        raise (IdentError (name, loc, RedefGlobal first_def))
+        raise (IdentError (name, loc, RedefVar first_def))
       with Not_found ->
         (name, {uexpr = Ulambda (uncurry_args args, uncurry_expr body);
             locu = loc})::(aux (M.add name loc env) q) in
