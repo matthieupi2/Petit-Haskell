@@ -30,8 +30,8 @@ module S = Set.Make(struct type t = Ast.ident
 module M = Map.Make(struct type t = Ast.ident
     let compare = Pervasives.compare end)
 
-(* Renvoie une liste d'identifiants non localisés (si pas d'erreurs) *)
-let are_different l =
+(* Vérifie que les arguments ont des identifiants différents *)
+let uncurry_args l =
   let rec aux prev = function
     | [] -> []
     | {ident=name; loci=loc}::q -> try
@@ -50,20 +50,21 @@ let rec uncurry_expr e =
     | Ecst c  -> Ucst c
     | Elist l -> Ulist (List.map uncurry_expr l)
     | Eappli (f, args) -> uncurry_appli f args
-    | Elambda (args, body) -> Ulambda (are_different args, uncurry_expr body)
+    | Elambda (args, body) -> Ulambda (uncurry_args args, uncurry_expr body)
     | Ebinop (o, e1, e2) -> Ubinop (o, uncurry_expr e1, uncurry_expr e2)
     | Eif (cdt, e1, e2) ->
         Uif (uncurry_expr cdt, uncurry_expr e1, uncurry_expr e2)
-    | Elet (defs, e) -> Ulet (uncurry defs S.empty, uncurry_expr e)
+    | Elet (defs, e) -> Ulet (uncurry_list_def defs S.empty, uncurry_expr e)
     | Ecase (_,_, hd, tl,_) when hd.ident = tl.ident ->
-        raise (IdentError (tl.ident, tl.loci, RedefArg hd.loci))
+        raise (IdentError (tl.ident, tl.loci, RedefCase hd.loci))
     | Ecase (e0, e1, hd, tl, e2) -> Ucase (uncurry_expr e0, uncurry_expr e1,
         hd.ident, tl.ident, uncurry_expr e2)
     | Edo l -> Udo (List.map uncurry_expr l)
     | Ereturn -> Ureturn in
   {uexpr = ue; locu = e.loce}
 
-and uncurry ast primitives =
+(* Vérifie que les variables définies ont des identifiants différents *)
+and uncurry_list_def ast primitives =
   let rec aux env = function
     | []  -> []
     | ({ident=name; loci=loc},_,_)::q when S.mem name primitives ->
@@ -72,6 +73,6 @@ and uncurry ast primitives =
         let first_def = M.find name env in
         raise (IdentError (name, loc, RedefGlobal first_def))
       with Not_found ->
-        (name, {uexpr = Ulambda (are_different args, uncurry_expr body);
+        (name, {uexpr = Ulambda (uncurry_args args, uncurry_expr body);
             locu = loc})::(aux (M.add name loc env) q) in
   aux M.empty ast

@@ -1,6 +1,10 @@
 type location = Lexing.position * Lexing.position
-type identError = RedefPrimitive | RedefGlobal of location |
-    RedefArg of location | Unbound
+type identError =
+  | RedefPrimitive
+  | RedefGlobal of location
+  | RedefArg of location
+  | RedefCase of location
+  | Unbound
 
 exception LexerError of string
 exception ParserError of string

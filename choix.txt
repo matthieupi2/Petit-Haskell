@@ -4,3 +4,5 @@ un seul ident -> ok
 error.ml
 
 Erreur incompréhensible dans le parser : binop inconnu (avec lbinop)
+Des localistations inutiles.
+UncurriedAst -> pas vraiment...
