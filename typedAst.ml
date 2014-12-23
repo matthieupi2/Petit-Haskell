@@ -116,3 +116,45 @@ let rec fvars t = match head t with
   | Tarrow (t1, t2) -> Vset.union (fvars t1) (fvars t2)
   | Tlist t -> fvars t
   | _ -> Vset.empty
+
+type schema = { vars : Vset.t; typ : typ }
+
+module Smap = Map.Make(String)
+
+type env = { bindings : schema Smap.t; fvars : Vset.t }
+
+(* TODO inutile ? *)
+let empty = { bindings = Smap.empty; fvars = Vset.empty }
+
+let maj env =
+  let fvars = Vset.fold (fun v fvars' -> Vset.union (fvars (Tvar v)) fvars')
+      env.fvars Vset.empty in
+  { bindings = env.bindings; fvars = fvars }
+
+let add x t env =
+  let env = maj env in
+  let schema_x = { vars = Vset.empty; typ = t } in
+  { bindings = Smap.add x schema_x env.bindings;
+    fvars = Vset.union (fvars t) env.fvars }
+
+let add_gen x t env =
+  let env = maj env in
+  let schema_x = { vars = Vset.diff (fvars t) env.fvars; typ = t } in
+  { bindings = Smap.add x schema_x env.bindings;
+    fvars = env.fvars }
+
+module Vmap = Map.Make(V)
+
+let find x env =
+  let schema_x = Smap.find x env in
+  let new_vars = Vset.fold (fun v new_vars -> Vmap.add v (V.create ()) new_vars)
+      schema_x.vars Vmap.empty in
+  let rec aux t = match head t with
+    | Tvar v as t -> ( try
+        Tvar (Vmap.find v new_vars)
+      with Not_found ->
+        t )
+    | Tarrow (t1, t2) -> Tarrow (aux t1, aux t2)
+    | Tlist t -> Tlist (aux t)
+    | t -> t in
+  aux schema_x.typ
