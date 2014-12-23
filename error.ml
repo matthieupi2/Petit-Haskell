@@ -12,6 +12,7 @@ type identError =
 exception LexerError of string
 exception ParserError of string
 exception IdentError of string * location * identError
+exception TypeError of location * string * string
 exception CompilerError of string
 
 (* Pour ne pas avoir à localiser les expressions créées par le compilateur *)
@@ -49,6 +50,8 @@ let error file = function
         print_loc file loc
       | Unbound -> eprintf "unbound variable \"%s\"@." ident ) ;
     exit 1
+  | TypeError (loc, t1, t2) -> print_loc file loc ;
+    eprintf "this expression has type %s but is expected to have type %s" t1 t2
   | CompilerError s -> print_loc file undef_loc ; eprintf "anomaly: %s@." s ;
     exit 2
   | e -> raise e
