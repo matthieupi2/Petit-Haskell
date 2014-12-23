@@ -179,7 +179,14 @@ let rec w env e = match e.uexpr with
       with Cant_unify ->
         type_error ue.locu te.typ e.typ in
     { texpr = Tlist (e::List.map aux l); typ = Tlist e.typ }
-  | Uappli _ -> assert false
+  | Uappli (ue1, ue2) -> ( let te1 = w env ue1 in
+    let te2 = w env ue2 in
+    let v = Tvar (V.create ()) in
+    try
+      unify te1.typ (Tarrow (te2.typ, v)) ;
+      { texpr = Tappli (te1, te2) ; typ = v }
+    with Cant_unify ->
+      assert false )
   | Ulambda _ -> assert false
   | Ubinop _ -> assert false
   | Uif _ -> assert false
