@@ -8,6 +8,7 @@ open Ast
 (* TODO localiser les initialisations ? *)
 type udef = ident * luexpr
 
+(* TODO desc *)
 and luexpr = {uexpr : uexpr; locu : Error.location}
 
 and uexpr =

@@ -22,6 +22,7 @@ type constant =
 
 type def = lident * lident list * lexpr
 
+(* TODO desc *)
 and lexpr = {expr : expr; loce : Error.location}
 
 and expr =
