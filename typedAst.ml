@@ -160,7 +160,10 @@ let find x env =
   aux schema_x.typ
 
 let rec w env e = match e.uexpr with
-  | Uident _ -> assert false
+  | Uident x -> ( try
+      find x env
+    with Not_found ->
+      raise (IdentError (x, e.locu, Unbound)) )
   | Ucst _ -> assert false
   | Ulist _ -> assert false
   | Uappli _ -> assert false

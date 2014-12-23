@@ -9,6 +9,7 @@ type identError =
   | RedefCase of location
   | Unbound
 
+(* TODO IdentError location * string * identError *)
 exception LexerError of string
 exception ParserError of string
 exception IdentError of string * location * identError
