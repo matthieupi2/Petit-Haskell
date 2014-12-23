@@ -117,7 +117,7 @@ let rec fvars t = match head t with
   | Tlist t -> fvars t
   | _ -> Vset.empty
 
-type schema = { vars : Vset.t; typ : typ }
+type schema = { vars : Vset.t; styp : typ }
 
 module Smap = Map.Make(String)
 
@@ -133,13 +133,13 @@ let maj env =
 
 let add x t env =
   let env = maj env in
-  let schema_x = { vars = Vset.empty; typ = t } in
+  let schema_x = { vars = Vset.empty; styp = t } in
   { bindings = Smap.add x schema_x env.bindings;
     fvars = Vset.union (fvars t) env.fvars }
 
 let add_gen x t env =
   let env = maj env in
-  let schema_x = { vars = Vset.diff (fvars t) env.fvars; typ = t } in
+  let schema_x = { vars = Vset.diff (fvars t) env.fvars; styp = t } in
   { bindings = Smap.add x schema_x env.bindings;
     fvars = env.fvars }
 
@@ -157,7 +157,7 @@ let find x env =
     | Tarrow (t1, t2) -> Tarrow (aux t1, aux t2)
     | Tlist t -> Tlist (aux t)
     | t -> t in
-  aux schema_x.typ
+  aux schema_x.styp
 
 let rec w env e = match e.uexpr with
   | Uident x -> ( try
@@ -170,7 +170,15 @@ let rec w env e = match e.uexpr with
       | Cbool _ -> Tbool in
     { texpr = Tcst c; typ = typ }
   | Ulist [] -> { texpr = Tlist []; typ = Tlist (Tvar (V.create ())) }
-  | Ulist _ -> assert false
+  | Ulist (e::l) -> let e = w env e in
+    let aux ue =
+      let te = w env ue in
+      try
+        unify e.typ te.typ ;
+        te
+      with Cant_unify ->
+        type_error ue.locu te.typ e.typ in
+    { texpr = Tlist (e::List.map aux l); typ = Tlist e.typ }
   | Uappli _ -> assert false
   | Ulambda _ -> assert false
   | Ubinop _ -> assert false
