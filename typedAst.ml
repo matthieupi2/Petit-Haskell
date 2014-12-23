@@ -103,8 +103,16 @@ let rec unify t1 t2 = match head t1, head t2 with
     with Cant_unify ->    (* on simplifie avant de renvoyer l'erreur *)
       unify t1' t2' ; raise Cant_unify )
   | Tlist t1, Tlist t2 -> unify t1 t2
-  | Tvar a, t | t, Tvar a -> if occur a t then
+  | Tvar v, t | t, Tvar v -> if occur v t then
       raise Cant_unify
     else
-      a.def <- Some t
+      v.def <- Some t
   | _ -> raise Cant_unify
+
+module Vset = Set.Make(V)
+
+let rec fvars t = match head t with
+  | Tvar v -> Vset.singleton v
+  | Tarrow (t1, t2) -> Vset.union (fvars t1) (fvars t2)
+  | Tlist t -> fvars t
+  | _ -> Vset.empty
