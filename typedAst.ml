@@ -25,26 +25,26 @@ module V = struct
   let create = let r = ref 0 in fun () -> incr r; { id = !r; def = None }
 end
 
-type texpr = { tdesc : tdesc; typ : typ }
+type ltexpr = { tdesc : tdesc; typ : typ; loct : loc }
 
 (* décurrifier *)
-and tdesc =
+and texpr =
   | Tident of ident
   | Tcst of constant
-  | Tlist of texpr list
-  | Tappli of texpr * texpr
-  | Tlambda of ident list * texpr
-  | Tbinop of binop * texpr * texpr
-  | Tif of texpr * texpr * texpr
-  | Tlet of udef list * texpr
-  | Tcase of texpr * texpr * ident * ident * texpr
-  | Tdo of texpr list
+  | Tlist of ltexpr list
+  | Tappli of ltexpr * ltexpr
+  | Tlambda of ident list * ltexpr
+  | Tbinop of binop * ltexpr * ltexpr
+  | Tif of ltexpr * ltexpr * ltexpr
+  | Tlet of udef list * ltexpr
+  | Tcase of ltexpr * ltexpr * ident * ident * ltexpr
+  | Tdo of ltexpr list
   | Treturn
 
 (* On suit le TD4 -> algorithme W avec unification destrucive *)
 
 let rec head = function
-  | Tvar {def = Some t} -> head t
+  | Tvar { def = Some t } -> t
   | t -> t
 
 (* TODO Inutile ? *)
@@ -53,8 +53,7 @@ let rec canon t = match head t with
   | Tlist t -> Tlist (canon t)
   | t -> t
 
-let string_of_typ t =
-  let var_names = Hashtbl.create 17 in
+let string_of_typ t var_names =
   let r = ref 0 in
   let fresh_name id =
     let s = String.make 1 (char_of_int (int_of_char 'a' + !r mod 26)) in
@@ -84,4 +83,9 @@ let string_of_typ t =
   aux t
 
 let type_error loc t1 t2 =
-  raise (TypeError (loc, string_of_typ t1, string_of_typ t2))
+  let var_names = Hashtbl.create 17 in
+  let s1 = string_of_typ t1 var_names in
+  let s2 = string_of_typ t2 var_names in
+  raise (TypeError (loc, s1, s2))
+
+
