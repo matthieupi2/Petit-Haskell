@@ -25,20 +25,20 @@ module V = struct
   let create = let r = ref 0 in fun () -> incr r; { id = !r; def = None }
 end
 
-type ltexpr = { texpr : texpr; typ : typ; loct : location }
+type ttexpr = { texpr : texpr; typ : typ }
 
 (* décurrifier *)
 and texpr =
   | Tident of ident
   | Tcst of constant
-  | Tlist of ltexpr list
-  | Tappli of ltexpr * ltexpr
-  | Tlambda of ident list * ltexpr
-  | Tbinop of binop * ltexpr * ltexpr
-  | Tif of ltexpr * ltexpr * ltexpr
-  | Tlet of udef list * ltexpr
-  | Tcase of ltexpr * ltexpr * ident * ident * ltexpr
-  | Tdo of ltexpr list
+  | Tlist of ttexpr list
+  | Tappli of ttexpr * ttexpr
+  | Tlambda of ident list * ttexpr
+  | Tbinop of binop * ttexpr * ttexpr
+  | Tif of ttexpr * ttexpr * ttexpr
+  | Tlet of udef list * ttexpr
+  | Tcase of ttexpr * ttexpr * ident * ident * ttexpr
+  | Tdo of ttexpr list
   | Treturn
 
 (* On suit le TD4 -> algorithme W avec unification destrucive *)
@@ -161,14 +161,15 @@ let find x env =
 
 let rec w env e = match e.uexpr with
   | Uident x -> ( try
-      find x env
+      { texpr = Tident x; typ = find x env }
     with Not_found ->
       raise (IdentError (x, e.locu, Unbound)) )
-  | Ucst c -> ( match c with
-    | Cint _ -> Tint
-    | Cchar _ -> Tchar
-    | Cbool _ -> Tbool )
-  | Ulist [] -> Tlist (Tvar (V.create ()))
+  | Ucst c -> let typ = match c with
+      | Cint _ -> Tint
+      | Cchar _ -> Tchar
+      | Cbool _ -> Tbool in
+    { texpr = Tcst c; typ = typ }
+  | Ulist [] -> { texpr = Tlist []; typ = Tlist (Tvar (V.create ())) }
   | Ulist _ -> assert false
   | Uappli _ -> assert false
   | Ulambda _ -> assert false
