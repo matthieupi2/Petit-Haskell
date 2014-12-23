@@ -11,7 +11,7 @@ type typ =
   | Tint
   | Tio
   | Tarrow of typ * typ
-  | Tproduct of typ * typ
+  | Tlist of typ
   | Tvar of tvar
 
 and tvar =
@@ -27,6 +27,7 @@ end
 
 type texpr = { tdesc : tdesc; typ : typ }
 
+(* décurrifier *)
 and tdesc =
   | Tident of ident
   | Tcst of constant
@@ -39,3 +40,14 @@ and tdesc =
   | Tcase of texpr * texpr * ident * ident * texpr
   | Tdo of texpr list
   | Treturn
+
+(* On suit le TD4 -> algorithme W avec unification destrucive *)
+
+let rec head = function
+  | Tvar {def = Some t} -> head t
+  | t -> t
+
+let rec canon t = match head t with
+  | Tarrow (t1, t2) -> Tarrow (canon t1, canon t2)
+  | Tlist t -> Tlist (canon t)
+  | t -> t
