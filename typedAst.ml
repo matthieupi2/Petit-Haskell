@@ -25,7 +25,7 @@ module V = struct
   let create = let r = ref 0 in fun () -> incr r; { id = !r; def = None }
 end
 
-type ltexpr = { tdesc : tdesc; typ : typ; loct : loc }
+type ltexpr = { texpr : texpr; typ : typ; loct : location }
 
 (* décurrifier *)
 and texpr =
@@ -82,10 +82,29 @@ let string_of_typ t var_names =
         fresh_name id in
   aux t
 
+(* TODO diversifier les erreurs *)
 let type_error loc t1 t2 =
   let var_names = Hashtbl.create 17 in
   let s1 = string_of_typ t1 var_names in
   let s2 = string_of_typ t2 var_names in
   raise (TypeError (loc, s1, s2))
 
+let rec occur v t = match head t with
+  | Tvar v' -> V.equal v v'
+  | Tarrow (t1, t2) -> occur v t1 || occur v t2
+  | Tlist t -> occur v t
+  | _ -> false
 
+exception Cant_unify
+let rec unify t1 t2 = match head t1, head t2 with
+  | Tbool, Tbool | Tchar, Tchar | Tint, Tint | Tio, Tio -> ()
+  | Tarrow (t1, t1'), Tarrow (t2, t2') -> ( try
+      unify t1 t2 ; unify t1' t2'
+    with Cant_unify ->    (* on simplifie avant de renvoyer l'erreur *)
+      unify t1' t2' ; raise Cant_unify )
+  | Tlist t1, Tlist t2 -> unify t1 t2
+  | Tvar a, t | t, Tvar a -> if occur a t then
+      raise Cant_unify
+    else
+      a.def <- Some t
+  | _ -> raise Cant_unify
