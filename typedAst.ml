@@ -82,12 +82,22 @@ let string_of_typ t var_names =
         fresh_name id in
   aux t
 
-(* TODO diversifier les erreurs *)
-let type_error loc t1 t2 =
+type unificationError =
+  | CantUnify
+  | NotAFunction
+  | FreeVar of typ * typ
+
+let type_error loc t1 t2 e =
   let var_names = Hashtbl.create 17 in
   let s1 = string_of_typ t1 var_names in
   let s2 = string_of_typ t2 var_names in
-  raise (TypeError (loc, s1, s2))
+  let e = match e with
+    | CantUnify -> Error.CantUnify
+    | NotAFunction -> Error.NotAFunction
+    | FreeVar (t3, t4) -> let s3 = (string_of_typ t3 var_names) in
+      let s4 = (string_of_typ t4 var_names) in
+      Error.FreeVar (s3, s4) in
+  raise (TypeError (loc, s1, s2, e))
 
 let rec occur v t = match head t with
   | Tvar v' -> V.equal v v'
@@ -95,19 +105,17 @@ let rec occur v t = match head t with
   | Tlist t -> occur v t
   | _ -> false
 
-exception Cant_unify
+exception UnificationFailure of unificationError
+
 let rec unify t1 t2 = match head t1, head t2 with
   | Tbool, Tbool | Tchar, Tchar | Tint, Tint | Tio, Tio -> ()
-  | Tarrow (t1, t1'), Tarrow (t2, t2') -> ( try
-      unify t1 t2 ; unify t1' t2'
-    with Cant_unify ->    (* on simplifie avant de renvoyer l'erreur *)
-      unify t1' t2' ; raise Cant_unify )
+  | Tarrow (t1, t1'), Tarrow (t2, t2') -> unify t1 t2 ; unify t1' t2'
   | Tlist t1, Tlist t2 -> unify t1 t2
   | Tvar v, t | t, Tvar v -> if occur v t then
-      raise Cant_unify
+      raise (UnificationFailure (FreeVar (Tvar v, t)))
     else
       v.def <- Some t
-  | _ -> raise Cant_unify
+  | _ -> raise (UnificationFailure CantUnify)
 
 module Vset = Set.Make(V)
 
@@ -176,8 +184,8 @@ let rec w env e = match e.uexpr with
       try
         unify e.typ te.typ ;
         te
-      with Cant_unify ->
-        type_error ue.locu te.typ e.typ in
+      with UnificationFailure error ->
+        type_error ue.locu te.typ e.typ error in
     { texpr = Tlist (e::List.map aux l); typ = Tlist e.typ }
   | Uappli (ue1, ue2) -> ( let te1 = w env ue1 in
     let te2 = w env ue2 in
@@ -185,7 +193,7 @@ let rec w env e = match e.uexpr with
     try
       unify te1.typ (Tarrow (te2.typ, v)) ;
       { texpr = Tappli (te1, te2) ; typ = v }
-    with Cant_unify ->
+    with UnificationFailure e ->
       assert false )
   | Ulambda _ -> assert false
   | Ubinop _ -> assert false

@@ -8,12 +8,16 @@ type identError =
   | RedefArg of location
   | RedefCase of location
   | Unbound
+type typeError =
+  | CantUnify
+  | NotAFunction
+  | FreeVar of string * string
 
 (* TODO IdentError location * string * identError *)
 exception LexerError of string
 exception ParserError of string
 exception IdentError of string * location * identError
-exception TypeError of location * string * string
+exception TypeError of location * string * string * typeError
 exception CompilerError of string
 
 (* Pour ne pas avoir à localiser les expressions créées par le compilateur *)
@@ -47,12 +51,22 @@ let error file = function
         eprintf "%s is already a argument defined at@." ident ;
         print_loc file loc
       | RedefCase loc ->
-        eprintf "%s is already the name of the head of list defined at@." ident ;
+        eprintf "%s is already the name of the head of list defined at@."
+            ident ;
         print_loc file loc
       | Unbound -> eprintf "unbound variable \"%s\"@." ident ) ;
     exit 1
-  | TypeError (loc, t1, t2) -> print_loc file loc ;
-    eprintf "this expression has type %s but is expected to have type %s" t1 t2
+  | TypeError (loc, t1, t2, e) -> print_loc file loc ; ( match e with
+      | CantUnify ->
+        eprintf "this expression has type %s but is expected to have type %s@."
+            t1 t2
+      | NotAFunction ->
+        eprintf  "this expression is not a function, it cannot be applied"
+      | FreeVar (t3, t4) ->
+        eprintf "this expression has type %s but is expected to have type %s.@."
+            t1 t2 ;
+        eprintf "%s occurs in %s@." t3 t4 ) ;
+    exit 1
   | CompilerError s -> print_loc file undef_loc ; eprintf "anomaly: %s@." s ;
     exit 2
   | e -> raise e
