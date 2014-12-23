@@ -158,3 +158,16 @@ let find x env =
     | Tlist t -> Tlist (aux t)
     | t -> t in
   aux schema_x.typ
+
+let rec w env e = match e.uexpr with
+  | Uident _ -> assert false
+  | Ucst _ -> assert false
+  | Ulist _ -> assert false
+  | Uappli _ -> assert false
+  | Ulambda _ -> assert false
+  | Ubinop _ -> assert false
+  | Uif _ -> assert false
+  | Ulet _ -> assert false
+  | Ucase _ -> assert false
+  | Udo _ -> assert false
+  | Ureturn -> assert false
