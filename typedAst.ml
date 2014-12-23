@@ -164,7 +164,11 @@ let rec w env e = match e.uexpr with
       find x env
     with Not_found ->
       raise (IdentError (x, e.locu, Unbound)) )
-  | Ucst _ -> assert false
+  | Ucst c -> ( match c with
+    | Cint _ -> Tint
+    | Cchar _ -> Tchar
+    | Cbool _ -> Tbool )
+  | Ulist [] -> Tlist (Tvar (V.create ()))
   | Ulist _ -> assert false
   | Uappli _ -> assert false
   | Ulambda _ -> assert false
