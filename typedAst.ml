@@ -231,8 +231,8 @@ let rec w env e = match e.uexpr with
         { texpr = Tif (tcdt, te1, te2); typ = te1.typ }
       with UnificationFailure e -> type_error ue2.locu te2.typ te1.typ e
     with UnificationFailure e -> type_error ucdt.locu tcdt.typ Tbool e )
-  | Ulet (udefs, ue) -> let new_vars =
-      List.map (fun udef -> (udef, Tvar (V.create ()))) udefs in
+  | Ulet (ludef, ue) -> let new_vars =
+      List.map (fun udef -> (udef, Tvar (V.create ()))) ludef in
     let env' =
       List.fold_left (fun env' ((x, _), t) -> add x t env') env new_vars in
     let unify_def ((x, ue), t) =
@@ -241,11 +241,11 @@ let rec w env e = match e.uexpr with
         unify te.typ t ;
         (x, te)
       with UnificationFailure e -> type_error ue.locu te.typ t e in
-    let tdefs = List.map unify_def new_vars in
+    let ltdef = List.map unify_def new_vars in
     let env_gen =
-      List.fold_left (fun env (x, te) -> add_gen x te.typ env) env tdefs in
+      List.fold_left (fun env (x, te) -> add_gen x te.typ env) env ltdef in
     let te = w env_gen ue in 
-    { texpr = Tlet (tdefs, te); typ = te.typ }
+    { texpr = Tlet (ltdef, te); typ = te.typ }
   | Ucase (ue0, ue1, hd, tl, ue2) -> ( let te0 = w env ue0 in
     match te0.typ with
       | Tlist t -> ( let te1 = w env ue1 in
@@ -258,5 +258,12 @@ let rec w env e = match e.uexpr with
         with UnificationFailure e -> type_error ue2.locu te2.typ te1.typ e )
       | _ -> (* TODO NotAList *)
         type_error ue0.locu te0.typ (Tlist (Tvar (V.create ()))) CantUnify )
-  | Udo _ -> assert false
+  | Udo lue -> let aux ue =
+      let te = w env ue in 
+      try
+        unify te.typ Tio ;
+        te
+      with UnificationFailure e -> type_error ue.locu te.typ Tio e in
+    let lte = List.map aux lue in
+    { texpr = Tdo lte; typ = Tio }
   | Ureturn -> assert false
