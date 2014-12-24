@@ -8,6 +8,7 @@ open Lexing
 open Parser
 open Ast
 open UncurriedAst
+open TypedAst
 open Error
 
 let usage = "usage : petitghc [options] file.hs"
@@ -179,7 +180,13 @@ let () =
           print_uncurried_ast uncurried_ast ;
         if !opt_uncurry_only then
           exit 0 ;
-        let typed_ast = assert false in
+        let env = empty_env in
+        let env = add "div" (Tarrow (Tint, Tarrow (Tint, Tint))) env in
+        let env = add "rem" (Tarrow (Tint, Tarrow (Tint, Tint))) env in
+        let env = add "putChar" (Tarrow (Tchar, Tio)) env in
+        let env =
+          add_gen "error" (Tarrow (Tlist Tchar, Tvar (V.create ()))) env in
+        let typed_ast = type_ast uncurried_ast env in
         if !opt_print_typed_ast then
           print_typed_ast typed_ast ;
         if !opt_type_only then

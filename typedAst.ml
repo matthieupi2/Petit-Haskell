@@ -134,8 +134,7 @@ module Smap = Map.Make(String)
 
 type env = { bindings : schema Smap.t; fvars : Vset.t }
 
-(* TODO inutile ? *)
-let empty = { bindings = Smap.empty; fvars = Vset.empty }
+let empty_env = { bindings = Smap.empty; fvars = Vset.empty }
 
 let maj env =
   let fvars = Vset.fold (fun v fvars' -> Vset.union (fvars (Tvar v)) fvars')
@@ -271,7 +270,7 @@ and w env e = match e.uexpr with
   | Ureturn -> { texpr = Treturn; typ = Tio }
 
 (* vérifie au passage que main existe de type Tio *)
-let typeAst uast env =
+let type_ast uast env =
   let rec find_loc_main = function
     | ("main", {locu = loc})::_ -> loc
     | _::q -> find_loc_main q
