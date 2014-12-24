@@ -219,7 +219,16 @@ let rec w env e = match e.uexpr with
         { texpr = Tbinop (op, te1, te2); typ = t3 }
       with UnificationFailure e -> type_error ue2.locu te2.typ t2 e
     with UnificationFailure e -> type_error ue1.locu te1.typ t1 e )
-  | Uif _ -> assert false
+  | Uif (ucdt, ue1, ue2) -> ( let tcdt = w env ucdt in
+    try
+      unify tcdt.typ Tbool ;
+      let te1 = w env ue1 in
+      let te2 = w env ue2 in
+      try
+        unify te1.typ te2.typ ;
+        { texpr = Tif (tcdt, te1, te2); typ = te1.typ }
+      with UnificationFailure e -> type_error ue2.locu te2.typ te1.typ e
+    with UnificationFailure e -> type_error ucdt.locu tcdt.typ Tbool e )
   | Ulet _ -> assert false
   | Ucase _ -> assert false
   | Udo _ -> assert false
