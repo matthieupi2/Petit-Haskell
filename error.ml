@@ -54,7 +54,7 @@ let error file = function
         eprintf "%s is already the name of the head of list defined at@."
             ident ;
         print_loc file loc
-      | Unbound -> eprintf "unbound variable \"%s\"@." ident ) ;
+      | Unbound -> eprintf "variable \"%s\" is undefined@." ident ) ;
     exit 1
   | TypeError (loc, t1, t2, e) -> print_loc file loc ; ( match e with
       | CantUnify ->

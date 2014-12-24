@@ -270,5 +270,18 @@ and w env e = match e.uexpr with
     { texpr = Tdo lte; typ = Tio }
   | Ureturn -> { texpr = Treturn; typ = Tio }
 
+(* vérifie au passage que main existe de type Tio *)
 let typeAst uast env =
-  assert false
+  let rec find_loc_main = function
+    | ("main", {locu = loc})::_ -> loc
+    | _::q -> find_loc_main q
+    | [] -> raise (IdentError ("main", undef_loc, Unbound)) in
+  let loc_main = find_loc_main uast in
+  let tast = w_ldef env uast in
+  let rec check_main = function
+    | ("main", { typ = t })::_ -> ( try
+        unify t Tio
+      with UnificationFailure e -> type_error loc_main t Tio e )
+    | _::q -> check_main q
+    | [] -> raise (CompilerError ("main has disappeared during typing")) in
+  check_main tast
