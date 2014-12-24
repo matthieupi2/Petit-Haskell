@@ -25,7 +25,9 @@ module V = struct
   let create = let r = ref 0 in fun () -> incr r; { id = !r; def = None }
 end
 
-type ttexpr = { texpr : texpr; typ : typ }
+type tdef = ident * ttexpr
+
+and ttexpr = { texpr : texpr; typ : typ }
 
 (* décurrifier *)
 and texpr =
@@ -36,7 +38,7 @@ and texpr =
   | Tlambda of ident list * ttexpr
   | Tbinop of binop * ttexpr * ttexpr
   | Tif of ttexpr * ttexpr * ttexpr
-  | Tlet of udef list * ttexpr
+  | Tlet of tdef list * ttexpr
   | Tcase of ttexpr * ttexpr * ident * ident * ttexpr
   | Tdo of ttexpr list
   | Treturn
@@ -229,7 +231,21 @@ let rec w env e = match e.uexpr with
         { texpr = Tif (tcdt, te1, te2); typ = te1.typ }
       with UnificationFailure e -> type_error ue2.locu te2.typ te1.typ e
     with UnificationFailure e -> type_error ucdt.locu tcdt.typ Tbool e )
-  | Ulet _ -> assert false
+  | Ulet (udefs, ue) -> let new_vars =
+      List.map (fun udef -> (udef, Tvar (V.create ()))) udefs in
+    let env' =
+      List.fold_left (fun env' ((x, _), t) -> add x t env') env new_vars in
+    let unify_def ((x, ue), t) =
+      let te = w env' ue in
+      try
+        unify te.typ t ;
+        (x, te)
+      with UnificationFailure e -> type_error ue.locu te.typ t e in
+    let tdefs = List.map unify_def new_vars in
+    let env_gen =
+      List.fold_left (fun env (x, te) -> add_gen x te.typ env) env tdefs in
+    let te = w env_gen ue in 
+    { texpr = Tlet (tdefs, te); typ = te.typ }
   | Ucase _ -> assert false
   | Udo _ -> assert false
   | Ureturn -> assert false
