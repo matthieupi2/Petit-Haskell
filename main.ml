@@ -14,18 +14,24 @@ let usage = "usage : petitghc [options] file.hs"
 
 let opt_parse_only = ref false
 let opt_uncurry_only = ref false
+let opt_type_only = ref false
 let opt_print_tokens = ref false
 let opt_print_ast = ref false
 let opt_print_uncurried_ast = ref false
+let opt_print_typed_ast = ref false
 
+(* TODO angliciser *)
 let spec = [
   "--parse-only", Arg.Set opt_parse_only, " s'arrête après le parsing" ;
   "--uncurry-only", Arg.Set opt_uncurry_only,
       " s'arrête après la décurrification" ;
+  "--type-only", Arg.Set opt_type_only, " s'arrête après le typing" ;
   "--print-tokens", Arg.Set opt_print_tokens, " affiche le résultat du lexing" ;
   "--print-ast", Arg.Set opt_print_ast, " affiche le résultat du parser" ;
   "--print-uncurried-ast", Arg.Set opt_print_uncurried_ast,
-      " affiche le résultat de la décurrification" ]
+      " affiche le résultat de la décurrification" ;
+  "--print_typed_ast", Arg.Set opt_print_typed_ast,
+      "affiche le résultat du typage"]
 
 let file =
   let file = ref None in
@@ -148,6 +154,9 @@ let print_uncurried_ast =
     | def0::q -> print_def def0 ; printf "\n@." ; print_file q in
   print_file
 
+let print_typed_ast typed_ast =
+  assert false
+
 let () =
   try
     let c = open_in file in
@@ -169,6 +178,11 @@ let () =
         if !opt_print_uncurried_ast then
           print_uncurried_ast uncurried_ast ;
         if !opt_uncurry_only then
+          exit 0 ;
+        let typed_ast = assert false in
+        if !opt_print_typed_ast then
+          print_typed_ast typed_ast ;
+        if !opt_type_only then
           exit 0 ;
         raise (CompilerError "compilateur inexistant")
       with e -> Error.error file e
