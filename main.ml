@@ -155,8 +155,42 @@ let print_uncurried_ast =
     | def0::q -> print_def def0 ; printf "\n@." ; print_file q in
   print_file
 
-let print_typed_ast typed_ast =
-  assert false
+let print_typed_ast =
+  let var_names = Hashtbl.create 59 in
+  let print_cte = function
+    | Cint i -> print_int i
+    | Cchar c -> printf "'%s'" (Char.escaped c)
+    | Cbool true -> printf "True"
+    | Cbool false -> printf "False" in
+  let rec print_expr e = ( match e.texpr with 
+      | Tident s -> printf " (%s" s
+      | Tcst c -> printf " (" ; print_cte c
+      | Tlist l -> printf " ([" ; List.iter print_expr l ; printf " ]"
+      | Tappli (f, arg) -> printf " (" ; print_expr f ; printf "(" ;
+        print_expr arg ; printf " )"
+      | Tlambda (args, e) -> printf " ((\\" ;
+      List.iter (fun s -> printf " %s" s) args ; printf " ->" ; print_expr e ;
+        printf ")"
+      | Tbinop (o, e0, e1) -> printf " (%s" (Hashtbl.find ops o) ;
+        print_expr e0 ; print_expr e1
+      | Tif (cdt, e1, e2) -> printf " (if " ; print_expr cdt ; printf " then " ;
+        print_expr e1 ; printf " else " ; print_expr e2
+      | Tlet (ld, e) -> printf "(let " ;
+        List.iter (fun d -> print_def d ; printf "\n") ld ; printf "in" ;
+        print_expr e 
+      | Tcase (e, e0, hd, tl, e1) -> printf "(case " ; print_expr e ;
+        printf " of\n | [] -> " ; print_expr e0 ; printf "\n | %s:%s -> " hd tl ;
+        print_expr e1 ; printf "\n"
+      | Tdo l ->
+          printf "({" ; List.iter (fun e -> printf "\n" ; print_expr e) l ;
+        printf "\n}"
+      | Treturn -> printf " (()" ) ;
+    printf ")<%s>" (string_of_typ e.typ var_names)
+  and print_def (s, e) = printf "%s=\n" s ; print_expr e in
+  let rec print_file = function
+    | [] -> ()
+    | def0::q -> print_def def0 ; printf "\n@." ; print_file q in
+  print_file
 
 let () =
   try

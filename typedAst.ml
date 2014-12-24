@@ -283,4 +283,5 @@ let type_ast uast env =
       with UnificationFailure e -> type_error loc_main t Tio e )
     | _::q -> check_main q
     | [] -> raise (CompilerError ("main has disappeared during typing")) in
-  check_main tast
+  check_main tast ;
+  tast
