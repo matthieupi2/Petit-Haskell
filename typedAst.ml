@@ -205,7 +205,20 @@ let rec w env e = match e.uexpr with
         (tbody, Tarrow (v, tlambda_typ)) in
     let (tbody, tlambda_typ) = aux env args in
     { texpr = Tlambda (args, tbody); typ = tlambda_typ }
-  | Ubinop _ -> assert false
+  | Ubinop (op, ue1, ue2) -> ( let (t1, t2, t3) = match op with
+      | Badd | Bsub | Bmul -> (Tint, Tint, Tint)
+      | Blt | Bleq | Bgt | Bgeq | Beq | Bneq -> (Tint, Tint, Tbool)
+      | Band | Bor -> (Tbool, Tbool, Tbool)
+      | Bcol -> let v = Tvar (V.create ()) in (v, Tlist v, Tlist v) in
+    let te1 = w env ue1 in
+    try
+      unify t1 te1.typ ;
+      let te2 = w env ue2 in
+      try
+        unify t2 te2.typ ;
+        { texpr = Tbinop (op, te1, te2); typ = t3 }
+      with UnificationFailure e -> type_error ue2.locu te2.typ t2 e
+    with UnificationFailure e -> type_error ue1.locu te1.typ t1 e )
   | Uif _ -> assert false
   | Ulet _ -> assert false
   | Ucase _ -> assert false
