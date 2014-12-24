@@ -163,7 +163,7 @@ let () =
           print_ast ast ;
         if !opt_parse_only then
           exit 0 ;
-        let primitives =
+        let primitives =    (* TODO Délocaliser primitives *)
             UncurriedAst.S.of_list ["div" ; "rem" ; "putChar" ; "error"] in
         let uncurried_ast = uncurry_list_def ast primitives in
         if !opt_print_uncurried_ast then

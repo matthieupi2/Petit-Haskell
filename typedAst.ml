@@ -170,7 +170,19 @@ let find x env =
     | t -> t in
   aux schema_x.styp
 
-let rec w env e = match e.uexpr with
+let rec w_ldef env ludef =
+  let new_vars = List.map (fun udef -> (udef, Tvar (V.create ()))) ludef in
+  let env' =
+    List.fold_left (fun env' ((x, _), t) -> add x t env') env new_vars in
+  let unify_def ((x, ue), t) =
+    let te = w env' ue in
+    try
+      unify te.typ t ;
+      (x, te)
+    with UnificationFailure e -> type_error ue.locu te.typ t e in
+  List.map unify_def new_vars 
+
+and w env e = match e.uexpr with
   | Uident x -> ( try
       { texpr = Tident x; typ = find x env }
     with Not_found ->
@@ -231,17 +243,7 @@ let rec w env e = match e.uexpr with
         { texpr = Tif (tcdt, te1, te2); typ = te1.typ }
       with UnificationFailure e -> type_error ue2.locu te2.typ te1.typ e
     with UnificationFailure e -> type_error ucdt.locu tcdt.typ Tbool e )
-  | Ulet (ludef, ue) -> let new_vars =
-      List.map (fun udef -> (udef, Tvar (V.create ()))) ludef in
-    let env' =
-      List.fold_left (fun env' ((x, _), t) -> add x t env') env new_vars in
-    let unify_def ((x, ue), t) =
-      let te = w env' ue in
-      try
-        unify te.typ t ;
-        (x, te)
-      with UnificationFailure e -> type_error ue.locu te.typ t e in
-    let ltdef = List.map unify_def new_vars in
+  | Ulet (ludef, ue) -> let ltdef = w_ldef env ludef in
     let env_gen =
       List.fold_left (fun env (x, te) -> add_gen x te.typ env) env ltdef in
     let te = w env_gen ue in 
@@ -267,3 +269,6 @@ let rec w env e = match e.uexpr with
     let lte = List.map aux lue in
     { texpr = Tdo lte; typ = Tio }
   | Ureturn -> { texpr = Treturn; typ = Tio }
+
+let typeAst uast env =
+  assert false
