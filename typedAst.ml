@@ -246,6 +246,17 @@ let rec w env e = match e.uexpr with
       List.fold_left (fun env (x, te) -> add_gen x te.typ env) env tdefs in
     let te = w env_gen ue in 
     { texpr = Tlet (tdefs, te); typ = te.typ }
-  | Ucase _ -> assert false
+  | Ucase (ue0, ue1, hd, tl, ue2) -> ( let te0 = w env ue0 in
+    match te0.typ with
+      | Tlist t -> ( let te1 = w env ue1 in
+        let env = add hd t env in
+        let env = add tl (Tlist t) env in
+        let te2 = w env ue2 in
+        try
+          unify te1.typ te2.typ ;
+          { texpr = Tcase (te0, te1, hd, tl, te2); typ = te1.typ }
+        with UnificationFailure e -> type_error ue2.locu te2.typ te1.typ e )
+      | _ -> (* TODO NotAList *)
+        type_error ue0.locu te0.typ (Tlist (Tvar (V.create ()))) CantUnify )
   | Udo _ -> assert false
   | Ureturn -> assert false
