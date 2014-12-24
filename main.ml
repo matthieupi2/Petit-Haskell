@@ -31,7 +31,7 @@ let spec = [
   "--print-ast", Arg.Set opt_print_ast, " affiche le résultat du parser" ;
   "--print-uncurried-ast", Arg.Set opt_print_uncurried_ast,
       " affiche le résultat de la décurrification" ;
-  "--print_typed_ast", Arg.Set opt_print_typed_ast,
+  "--print-typed-ast", Arg.Set opt_print_typed_ast,
       "affiche le résultat du typage"]
 
 let file =
