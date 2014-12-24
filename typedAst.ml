@@ -193,8 +193,9 @@ let rec w env e = match e.uexpr with
     try
       unify te1.typ (Tarrow (te2.typ, v)) ;
       { texpr = Tappli (te1, te2) ; typ = v }
-    with UnificationFailure e ->
-      assert false )
+    with UnificationFailure e -> match head te1.typ with
+      | Tarrow (t, _) -> type_error ue2.locu te2.typ t e (* TODO à vérifier *)
+      | _ -> type_error ue1.locu te1.typ (Tarrow (te2.typ, v)) NotAFunction )
   | Ulambda _ -> assert false
   | Ubinop _ -> assert false
   | Uif _ -> assert false
