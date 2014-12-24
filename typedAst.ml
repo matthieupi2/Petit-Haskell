@@ -69,21 +69,24 @@ let string_of_typ t var_names =
     Hashtbl.add var_names id s'' ; 
     incr r ;
     s'' in
-  let rec aux = function
+  let rec aux right = function
     | Tbool -> "Bool"
     | Tchar -> "Char"
     | Tint -> "Integer"
     | Tio -> "IO ()"
-    | Tarrow (t1, t2) -> let s1 = aux t1 in
-      let s2 = aux t2 in
-      s1 ^ " -> " ^ s2
-    | Tlist t -> "[" ^ aux t ^ "]"
-    | Tvar {def = Some t} -> aux t
+    | Tarrow (t1, t2) -> let s1 = aux false t1 in
+      let s2 = aux true t2 in
+      if right then
+        s1 ^ " -> " ^ s2
+      else
+        "(" ^ s1 ^ " -> " ^ s2 ^ ")"
+    | Tlist t -> "[" ^ aux true t ^ "]"
+    | Tvar {def = Some t} -> aux true t
     | Tvar {id = id} -> try
         Hashtbl.find var_names id
       with Not_found ->
         fresh_name id in
-  aux t
+  aux true t
 
 type unificationError =
   | CantUnify
