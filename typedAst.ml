@@ -266,4 +266,4 @@ let rec w env e = match e.uexpr with
       with UnificationFailure e -> type_error ue.locu te.typ Tio e in
     let lte = List.map aux lue in
     { texpr = Tdo lte; typ = Tio }
-  | Ureturn -> assert false
+  | Ureturn -> { texpr = Treturn; typ = Tio }
