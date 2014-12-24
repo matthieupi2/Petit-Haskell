@@ -53,6 +53,7 @@ let rec canon t = match head t with
   | Tlist t -> Tlist (canon t)
   | t -> t
 
+(* TODO parenthésage *)
 let string_of_typ t var_names =
   let r = ref 0 in
   let fresh_name id =
@@ -154,7 +155,7 @@ let add_gen x t env =
 module Vmap = Map.Make(V)
 
 let find x env =
-  let schema_x = Smap.find x env in
+  let schema_x = Smap.find x env.bindings in
   let new_vars = Vset.fold (fun v new_vars -> Vmap.add v (V.create ()) new_vars)
       schema_x.vars Vmap.empty in
   let rec aux t = match head t with
@@ -196,7 +197,14 @@ let rec w env e = match e.uexpr with
     with UnificationFailure e -> match head te1.typ with
       | Tarrow (t, _) -> type_error ue2.locu te2.typ t e (* TODO à vérifier *)
       | _ -> type_error ue1.locu te1.typ (Tarrow (te2.typ, v)) NotAFunction )
-  | Ulambda _ -> assert false
+  | Ulambda (args, body) -> let rec aux env = function
+      | [] -> let tbody = w env body in
+        (tbody, tbody.typ)
+      | x::q -> let v = Tvar (V.create ()) in
+        let (tbody, tlambda_typ) = aux (add x v env) q in
+        (tbody, Tarrow (v, tlambda_typ)) in
+    let (tbody, tlambda_typ) = aux env args in
+    { texpr = Tlambda (args, tbody); typ = tlambda_typ }
   | Ubinop _ -> assert false
   | Uif _ -> assert false
   | Ulet _ -> assert false
