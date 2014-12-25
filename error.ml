@@ -24,6 +24,7 @@ exception CompilerError of string
 let undef_pos = {pos_fname = ""; pos_lnum = 0; pos_bol = 0; pos_cnum = 0}
 let undef_loc = undef_pos, undef_pos
 
+(* TODO localisation bizarre (print_q q dans queue2.hs) -> à vérifier *)
 let print_loc file (b, e) =
   eprintf "File \"%s\", line %d, characters %d-%d:@." file b.pos_lnum
       (b.pos_cnum - b.pos_bol + 1) (e.pos_cnum - b.pos_bol + 1)

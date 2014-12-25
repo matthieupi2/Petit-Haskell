@@ -46,7 +46,7 @@ and texpr =
 (* On suit le TD4 -> algorithme W avec unification destrucive *)
 
 let rec head = function
-  | Tvar { def = Some t } -> t
+  | Tvar { def = Some t } -> head t
   | t -> t
 
 (* TODO Inutile ? *)
@@ -55,7 +55,6 @@ let rec canon t = match head t with
   | Tlist t -> Tlist (canon t)
   | t -> t
 
-(* TODO parenthésage *)
 let string_of_typ t var_names =
   let r = ref 0 in
   let fresh_name id =
