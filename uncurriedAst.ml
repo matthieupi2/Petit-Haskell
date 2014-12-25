@@ -81,6 +81,11 @@ and uncurry_list_def ast primitives =
         let first_def = M.find name env in
         raise (IdentError (name, loc, RedefVar first_def))
       with Not_found ->
-        (name, {uexpr = Ulambda (uncurry_args args, uncurry_expr body);
-            locu = loc})::(aux (M.add name loc env) q) in
+        let luexpr =
+          if args = [] then
+            uncurry_expr body
+          else
+            {uexpr = Ulambda (uncurry_args args, uncurry_expr body);
+              locu = loc} in
+        (name, luexpr)::(aux (M.add name loc env) q) in
   aux M.empty ast
