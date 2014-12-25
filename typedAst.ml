@@ -115,6 +115,7 @@ exception UnificationFailure of unificationError
 
 let rec unify t1 t2 = match head t1, head t2 with
   | Tbool, Tbool | Tchar, Tchar | Tint, Tint | Tio, Tio -> ()
+  | Tvar v1, Tvar v2 when V.equal v1 v2 -> ()
   | Tarrow (t1, t1'), Tarrow (t2, t2') -> unify t1 t2 ; unify t1' t2'
   | Tlist t1, Tlist t2 -> unify t1 t2
   | Tvar v, t | t, Tvar v -> if occur v t then
