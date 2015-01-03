@@ -11,6 +11,8 @@ open UncurriedAst
 open TypedAst
 open Error
 
+(* Définition des options proposées pour l'exécution *)
+
 let usage = "usage : petitghc [options] file.hs"
 
 let opt_parse_only = ref false
@@ -34,6 +36,7 @@ let spec = [
   "--print-typed-ast", Arg.Set opt_print_typed_ast,
       "affiche le résultat du typage"]
 
+(* Ouverture du fichier à compiler *)
 let file =
   let file = ref None in
   let set_file s =
@@ -44,6 +47,9 @@ let file =
   match !file with
     | Some f -> f
     | None -> Arg.usage spec usage ; exit 1
+
+(* Fonctions permettant l'impression de l'ast à différents moments de la
+ * compilation *)
 
 let toks = Hashtbl.create 59
 let () = List.iter (fun (t,s) -> Hashtbl.add toks t s )
@@ -192,6 +198,9 @@ let print_typed_ast =
     | def0::q -> print_def def0 ; printf "\n@." ; print_file q in
   print_file
 
+(* Fonction principale *)
+(* Il y a plusieurs niveaux d'erreurs car l'impression de celles-ci nécessite des
+ * données créées durant la compilation *)
 let () =
   try
     let c = open_in file in
@@ -220,5 +229,5 @@ let () =
         raise (CompilerError "compilateur inexistant")
       with e -> Error.error file e
     with e -> Error.error_before_parsing file lb e ;
-  with exc -> eprintf "Anomaly: %s\n@." (Printexc.to_string exc) ;
+  with e -> eprintf "Anomaly: %s\n@." (Printexc.to_string e) ;
       exit 2 (* TODO délocaliser ? *)
