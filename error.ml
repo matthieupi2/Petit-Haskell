@@ -1,7 +1,13 @@
+
+(* Gère l'ensemble des erreurs rencontrées par le compilateur *)
+
 open Format
 open Lexing
 
 type location = Lexing.position * Lexing.position
+
+(* Définition des différents types d'erreurs *)
+
 type identError =
   | RedefPrimitive
   | RedefVar of location
@@ -21,8 +27,11 @@ exception TypeError of location * string * string * typeError
 exception CompilerError of string
 
 (* Pour ne pas avoir à localiser les expressions créées par le compilateur *)
+
 let undef_pos = {pos_fname = ""; pos_lnum = 0; pos_bol = 0; pos_cnum = 0}
 let undef_loc = undef_pos, undef_pos
+
+(* Impression des erreurs *)
 
 (* TODO localisation bizarre (print_q q dans queue2.hs) -> à vérifier *)
 let print_loc file (b, e) =
