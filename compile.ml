@@ -87,13 +87,14 @@ let var_libre_def (i, tt) = Vdef (i, var_libre_expr tt.texpr)
 let var_libre = List.map var_libre_def
 
 (************************************************************************************)
-(* phase 2 : construction explicite des fermetures *)
+(* phase 2 : construction explicite des fermetures  et des glacons *)
 
 let numfun = ref 0
 
 type fdef =
   | Fdef of ident * ident list * fexpr
   | Ffun of ident * ident list * ident * fexpr
+  | Fcodeglacon of ident * ident list * fexpr
   | Fmain of fexpr
 
 and fexpr =
@@ -108,6 +109,7 @@ and fexpr =
   | Fcase of fexpr * fexpr * ident * ident * fexpr
   | Fdo of fexpr list
   | Freturn
+  | Fglacon of ident
 
 
 let rec ferm_expr = function
@@ -122,10 +124,12 @@ let rec ferm_expr = function
                      in
        Flist l2, lf1
 
-  | {vexpr = Vappli (v1, v2); var_libres = l} -> 
+  | {vexpr = Vappli (v1, v2); var_libres = l} ->  
+       numfun := !numfun + 1;
+       let s = ("_fun" ^ (string_of_int (!numfun))) in
        let f1d, f1f = ferm_expr v1 in
        let f2d, f2f = ferm_expr v2 in
-       Fappli (f1d, f2d), f1f@f2f
+       Fappli (f1d, Fglacon s), (Fcodeglacon (s, v2.var_libres, f2d))::(f1f@f2f)
 
   | {vexpr = Vlambda(i, vv); var_libres = l} -> 
     numfun := !numfun + 1;
@@ -145,9 +149,11 @@ let rec ferm_expr = function
        Fif (f1d, f2d, f3d), f1f@f2f@f3f
 
   | {vexpr = Vlet (i, v1, v2); var_libres = l} -> 
+       numfun := !numfun + 1;
+       let s = ("_fun" ^ (string_of_int (!numfun))) in
        let f1d, f1f = ferm_expr v1 in
        let f2d, f2f = ferm_expr v2 in
-       Flet (i, f1d, f2d), f1f@f2f
+       Flet (i, Fglacon s, f2d), (Fcodeglacon (s, v1.var_libres, f1d))::(f1f@f2f)
 
   | {vexpr = Vcase (v1, v2, i1, i2, v3); var_libres = l} -> 
        let f1d, f1f = ferm_expr v1 in
@@ -172,9 +178,8 @@ let ferm_def = function
 let ferm p = List.concat (List.map ferm_def p)
 
 
-
 (************************************************************************************)
-(* phase 1 : allocation des variables *)
+(* phase 3 : allocation des variables *)
 
 type cdef =
   | CMain of ident * cexpr * int
