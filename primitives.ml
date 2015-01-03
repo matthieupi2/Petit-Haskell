@@ -13,15 +13,15 @@ let primitives = [
   { name = "putChar"; typ = Tarrow (Tchar, Tio); generalized = false;
     body = nop } ;
   { name = "error"; typ = Tarrow (Tlist Tchar, Tvar (V.create ()));
-    generalized = false; body = nop } ]
+    generalized = true; body = nop } ]
 
-let getNames () =
+let getNames =
   let rec aux = function
     | [] -> []
     | t::q -> t.name::(aux q) in
-  aux primitives
+  UncurriedAst.S.of_list (aux primitives)
  
-let getEnv () =
+let getEnv =
   let rec aux = function
     | [] -> empty_env
     | t::q -> let add = if t.generalized then add_gen else TypedAst.add in

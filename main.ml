@@ -207,20 +207,12 @@ let () =
           print_ast ast ;
         if !opt_parse_only then
           exit 0 ;
-        let primitives =    (* TODO Délocaliser primitives *)
-            UncurriedAst.S.of_list ["div" ; "rem" ; "putChar" ; "error"] in
-        let uncurried_ast = uncurry_list_def ast primitives in
+        let uncurried_ast = uncurry_list_def ast (Primitives.getNames) in
         if !opt_print_uncurried_ast then
           print_uncurried_ast uncurried_ast ;
         if !opt_uncurry_only then
           exit 0 ;
-        let env = empty_env in
-        let env = add "div" (Tarrow (Tint, Tarrow (Tint, Tint))) env in
-        let env = add "rem" (Tarrow (Tint, Tarrow (Tint, Tint))) env in
-        let env = add "putChar" (Tarrow (Tchar, Tio)) env in
-        let env =
-          add_gen "error" (Tarrow (Tlist Tchar, Tvar (V.create ()))) env in
-        let typed_ast = type_ast uncurried_ast env in
+        let typed_ast = type_ast uncurried_ast Primitives.getEnv in
         if !opt_print_typed_ast then
           print_typed_ast typed_ast ;
         if !opt_type_only then
