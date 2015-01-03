@@ -26,10 +26,11 @@
 %left PLUS MINUS
 %left TIMES
 %nonassoc neg
-/* %left fun_appli */
+/* %left fun_appli (inutile d'après menhir) */
 
 %start file
 
+(* TODO créer type file *)
 %type <Ast.def list> file
 
 %%
