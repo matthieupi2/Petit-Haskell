@@ -45,6 +45,8 @@ let file =
     | Some f -> f
     | None -> Arg.usage spec usage ; exit 1
 
+let ofile = Filename.chop_suffix file ".hs" ^ ".s"
+
 let toks = Hashtbl.create 59
 let () = List.iter (fun (t,s) -> Hashtbl.add toks t s )
   [ELSE, "else" ; IF, "if" ; IN, "in" ; LET, "let" ; CASE, "case" ; OF, "of" ;
@@ -225,7 +227,13 @@ let () =
           print_typed_ast typed_ast ;
         if !opt_type_only then
           exit 0 ;
-        raise (CompilerError "compilateur inexistant")
+        try
+           Compile.compile_program typed_ast ofile
+        with
+           | Compile.VarUndef s -> eprintf
+	           "Erreur de compilation: la variable %s n'est pas definie@." s;
+	           exit 1
+        (*raise (CompilerError "compilateur inexistant")*)
       with e -> Error.error file e
     with e -> Error.error_before_parsing file lb e ;
   with exc -> eprintf "Anomaly: %s\n@." (Printexc.to_string exc) ;

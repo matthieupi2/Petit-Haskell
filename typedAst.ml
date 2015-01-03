@@ -34,8 +34,8 @@ and texpr =
   | Tident of ident
   | Tcst of constant
   | Tlist of ttexpr list
-  | Tappli of ttexpr * ttexpr
-  | Tlambda of ident list * ttexpr
+  | Tappli of ttexpr * ttexpr             (*Tcall ttexpr -> ttexpr*)
+  | Tlambda of ident list * ttexpr        (*                      *)
   | Tbinop of binop * ttexpr * ttexpr
   | Tif of ttexpr * ttexpr * ttexpr
   | Tlet of tdef list * ttexpr
