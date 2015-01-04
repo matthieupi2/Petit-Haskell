@@ -508,7 +508,7 @@ let compile_def (codefun, codemain) = function
         pop ra ++ pop fp ++
         move a2 a0 ++ li a0 8 ++ li v0 9 ++ syscall ++
         li a1 4 ++ sw a1 areg(0, v0) ++ sw a2 areg(4, v0) ++ sw v0 alab ("_adr" ^ f) ++
-        jr ra
+        move a0 a2 ++ jr ra
       in
       code ++ codefun, codemain
 
@@ -563,7 +563,31 @@ let compile_program p ofile =
         code ++
         li v0 10 ++ (* exit *)
         syscall ++
-        codefun;
+        codefun ++
+        (*********div*********)
+        
+        (*********rem*********)
+        (*********putChar*********)
+        (*********error*********)
+        (*********force*********)
+        label "_force" ++
+        lw t0 areg(0, a0) ++
+        li t1 2 ++
+        bgt t0 t1 "_force_1" ++
+        jr ra ++
+        label "_force_1" ++
+        li t1 3 ++
+        beq t0 t1 "_force_2" ++
+        lw a0 areg(4, a0) ++
+        push ra ++ jal "_force" ++ pop ra ++
+        jr ra ++
+        label "_force_2" ++
+        push ra ++
+        lw a1 areg(4, a0) ++
+        lw a2 areg(4, a1) ++
+        jalr a2 ++
+        pop ra ++
+        jr ra;
       data =
         let chars = ref nop in
         for i=32 to 126 do
