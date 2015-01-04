@@ -1,9 +1,11 @@
 
-(* Ast : -applications décurrifiées
- * -certifié sans répétition erronée d'identifiants *)
+(* Nouvel ast avec les applications décurrifiées et
+ * certifié sans répétition erronée d'identifiants *)
 
 open Error
 open Ast
+
+(* Structure de l'ast *)
 
 (* TODO localiser les initialisations ? *)
 type udef = ident * luexpr
@@ -24,7 +26,7 @@ and uexpr =
   | Udo of luexpr list
   | Ureturn
 
-(*****************************************************************)
+(* Création du nouvel ast *)
 
 module S = Set.Make(struct type t = Ast.ident
     let compare = Pervasives.compare end)
