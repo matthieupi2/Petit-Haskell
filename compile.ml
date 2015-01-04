@@ -90,6 +90,7 @@ let var_libre = List.map var_libre_def
 (* phase 2 : construction explicite des fermetures  et des glacons *)
 
 let numfun = ref 0
+let numglacon = ref 0
 
 type fdef =
   | Fdef of ident * ident list * fexpr
@@ -125,8 +126,8 @@ let rec ferm_expr = function
        Flist l2, lf1
 
   | {vexpr = Vappli (v1, v2); var_libres = l} ->  
-       numfun := !numfun + 1;
-       let s = ("_fun" ^ (string_of_int (!numfun))) in
+       numglacon := !numglacon + 1;
+       let s = ("_glacon_" ^ (string_of_int (!numglacon))) in
        let f1d, f1f = ferm_expr v1 in
        let f2d, f2f = ferm_expr v2 in
        Fappli (f1d, Fglacon (s, v2.var_libres)), (Fcodeglacon (s, v2.var_libres, f2d))::(f1f@f2f)
@@ -134,7 +135,7 @@ let rec ferm_expr = function
   | {vexpr = Vlambda(i, vv); var_libres = l} -> 
     numfun := !numfun + 1;
     let f1, f2 = ferm_expr vv in
-    let s = ("_fun" ^ (string_of_int (!numfun))) in
+    let s = ("_fun_" ^ (string_of_int (!numfun))) in
     Fclos (s, l), Ffun (s, l, i, f1)::f2
 
   | {vexpr = Vbinop (o, v1, v2); var_libres = l} -> 
@@ -149,8 +150,8 @@ let rec ferm_expr = function
        Fif (f1d, f2d, f3d), f1f@f2f@f3f
 
   | {vexpr = Vlet (i, v1, v2); var_libres = l} -> 
-       numfun := !numfun + 1;
-       let s = ("_fun" ^ (string_of_int (!numfun))) in
+       numglacon := !numglacon + 1;
+       let s = ("_glacon_" ^ (string_of_int (!numglacon))) in
        let f1d, f1f = ferm_expr v1 in
        let f2d, f2f = ferm_expr v2 in
        Flet (i, Fglacon (s, v1.var_libres), f2d), (Fcodeglacon (s, v1.var_libres, f1d))::(f1f@f2f)
@@ -182,10 +183,10 @@ let ferm p = List.concat (List.map ferm_def p)
 (* phase 3 : allocation des variables *)
 
 type cdef =
-  | CDef of ident * ident list * cexpr * int
-  | CFun of ident * ident list * ident * cexpr * int
-  | CCodeglacon of ident * ident list * cexpr * int
-  | CMain of ident list * cexpr * int
+  | CDef of ident * cexpr * int
+  | CFun of ident * int * cexpr * int
+  | CCodeglacon of ident * int * cexpr * int
+  | CMain of cexpr * int
 
 and cexpr =
   | CLvar of int
@@ -217,7 +218,7 @@ let rec alloc_expr env next = function
   | Fident x -> (
       try
         let adr = Smap.find x env in CLvar adr
-      with (* ne doit jamais arriver : les variables globales sont des variables libres et sont donc dans l'environnement *)
+      with 
         | Not_found -> if Hashtbl.mem genv x then CGvar x else raise (VarUndef x)
                 ), next
 
@@ -275,7 +276,9 @@ let rec alloc_expr env next = function
 
   | Freturn -> CReturn, next
 
-  | Fglacon (i, l) -> let l1 = List.fold_left (fun l2 x -> (Smap.find x env)::l2) [] l in
+  | Fglacon (i, l) -> let s = ("_adr" ^ i) in
+                      Hashtbl.replace genv s ();
+                      let l1 = List.fold_left (fun l2 x -> (Smap.find x env)::l2) [] l in
                       CGlacon (i, l1), next
 
 (*
@@ -309,28 +312,26 @@ let rec alloc_expr env next = function
 
 let rec ajout_liste_env env next = function
   | [] -> env, next
-  | a::q -> let env1, n1 = ajout_liste_env env (next+4) q in
-            Smap.add a (-next-4) env1, n1
+  | a::q -> let env1 = Smap.add a (-next-4) env in
+            let env2, n2 = ajout_liste_env env1 (next+4) q in
+            env2, n2
+
 
 let alloc_def = function
   | Fdef (i, l, e) -> Hashtbl.replace genv i ();
-                      let env1, n1 = ajout_liste_env Smap.empty 0 l in
-                      let a, n = alloc_expr env1 n1 e in
-                      CDef (i, l, a, n)
+                      let a, n = alloc_expr Smap.empty 0 e in
+                      CDef (i, a, n)
 
-  | Ffun (i1, l, i2, e) -> Hashtbl.replace genv i1 ();
-                           let env1, n1 = ajout_liste_env Smap.empty 0 l in
-                           let a, n = alloc_expr (Smap.add i2 (-n1-4) env1) (n1+4) e in
-                           CFun (i1, l, i2, a, n)
+  | Ffun (i1, l, i2, e) -> let env1, n1 = ajout_liste_env (Smap.singleton i2 (-4)) 4 l in
+                           let a, n = alloc_expr env1 n1 e in
+                           CFun (i1, List.length l, a, n)
 
-  | Fcodeglacon (i, l, e) -> Hashtbl.replace genv i ();
-                             let env1, n1 = ajout_liste_env Smap.empty 0 l in
+  | Fcodeglacon (i, l, e) -> let env1, n1 = ajout_liste_env Smap.empty 0 l in
                              let a, n = alloc_expr env1 n1 e in
-                             CCodeglacon (i, l, a, n)
+                             CCodeglacon (i, List.length l, a, n)
 
-  | Fmain (l, e) -> let env1, n1 = ajout_liste_env Smap.empty 0 l in
-                    let a, n = alloc_expr env1 n1 e in
-                    CMain (l, a, n)
+  | Fmain (l, e) -> let a, n = alloc_expr Smap.empty 0 e in
+                    CMain (a, n)
 
 (*
   | PSet (x, e) ->
@@ -384,7 +385,8 @@ let rec compile_expr = function
 
   | CAppli (e1, e2) -> let code_e1 = compile_expr e1 in
                        let code_e2 = compile_expr e2 in
-                       code_e1 ++ push a0 ++ code_e2 ++ pop a1 ++ jalr a1
+                       code_e1 ++ push ra ++ jal "_force" ++ pop ra ++ push a0 ++
+                       code_e2 ++ pop a1 ++ lw t0 areg(4, a1) ++ jalr t0
 
   | CClos (f, l) -> let c, n1 = List.fold_left (fun (code,n) y ->
                                                 code ++ lw a0 areg(y, fp) ++ sw a0 areg(n, v0)
@@ -454,6 +456,7 @@ let rec compile_expr = function
                                                   , n+4 )
                                                  (nop, 8) l in
                       li a0 8 ++ li v0 9 ++ syscall ++
+                      sw v0 alab ("_adr" ^ f) ++
                       li a0 3 ++ sw a0 areg(0, v0) ++ move a2 v0 ++
                       li a0 (4*(List.length l) + 8) ++ li v0 9 ++ syscall ++ sw v0 areg(4, a2) ++
                       li a0 2 ++ sw a0 areg(0, v0) ++ la a0 alab f ++ sw a0 areg(4, v0) ++
@@ -461,42 +464,63 @@ let rec compile_expr = function
                       pop a0
 
 
-(*
-| Cst i ->
-        li a0 i ++ push a0
-
-    | LVar fp_x ->
-        lw a0 areg (fp_x, fp) ++ push a0
-
-| GVar x ->
-        lw a0 alab x ++ push a0
-
-    | Binop (o, e1, e2)->
-      let op = match o with
-| Add -> add
-        | Sub -> sub
-| Mul -> mul
-        | Div -> div
-      in
-      let code_e1 = compile_expr e1 in
-      let code_e2 = compile_expr e2 in
-      code_e1 ++ code_e2 ++
-      pop a1 ++ pop a0 ++ op a0 a0 oreg a1 ++ push a0
-
-| Letin (ofs, e1, e2) ->
-      let code_e1 = compile_expr e1 in
-      let code_e2 = compile_expr e2 in
-      code_e1 ++ pop a0 ++ sw a0 areg (ofs, fp) ++ code_e2
-
-    | Call (f, l) ->
-      let code = List.fold_left (fun x e -> let code_e = compile_expr e in
-                                 x ++ code_e) nop l in
-      code ++ jal f ++ pop a0 ++ popn (4*List.length l) ++ push a0
-*)
 
 let compile_def (codefun, codemain) = function
+  | CDef (x, e, fpmax) ->
+      let code = compile_expr e in
+      let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
+      let code =
+        pre ++ code ++ post ++ sw a0 alab x
+      in
+      codefun, codemain ++ code
+
+  | CFun (f, nvars, e, fpmax) ->
+      let code = compile_expr e in
+      let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
+      let vars = ref (sw a0 areg(-4, fp)) in
+      for i=2 to (nvars+1) do
+        vars := !vars ++ lw t0 areg(4*i, fp) ++ sw t0 areg((-4)*i, fp)
+      done;
+      let code =
+        label f ++
+        push fp ++ push ra ++
+        move fp sp ++ pre ++ !vars ++
+        code ++
+        post ++
+        pop ra ++ pop fp ++ jr ra
+      in
+      code ++ codefun, codemain
   
-  | _ -> nop, nop
+  | CCodeglacon (f, nvars, e, fpmax) ->
+      let code = compile_expr e in
+      let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
+      let vars = ref nop in
+      for i=2 to (nvars+1) do
+        vars := !vars ++ lw t0 areg(4*i, fp) ++ sw t0 areg((-4)*i+4, fp)
+      done;
+      let code =
+        label f ++
+        push fp ++ push ra ++
+        move fp sp ++ pre ++ !vars ++
+        code ++
+        post ++
+        push ra ++ jal "_force" ++ pop ra ++
+        pop ra ++ pop fp ++
+        move a2 a0 ++ li a0 8 ++ li v0 9 ++ syscall ++
+        li a1 4 ++ sw a1 areg(0, v0) ++ sw a2 areg(4, v0) ++ sw v0 alab ("_adr" ^ f) ++
+        jr ra
+      in
+      code ++ codefun, codemain
+
+  | CMain (e, fpmax) ->
+      let code = compile_expr e in
+      let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
+      let code =
+        pre ++ code ++ post
+      in
+      codefun, codemain ++ code
+  
+
 (*
   | Set (x, e, fpmax) ->
     let code = compile_expr e in
@@ -539,17 +563,22 @@ let compile_program p ofile =
         code ++
         li v0 10 ++ (* exit *)
         syscall ++
-        label "print" ++
-        li v0 1 ++
-        syscall ++
-        li v0 4 ++
-        la a0 alab "newline" ++
-        syscall ++
-        jr ra ++
         codefun;
       data =
+        let chars = ref nop in
+        for i=32 to 126 do
+          if i<>34 && i<>92 then (
+            chars := !chars ++ inline ("_char_" ^ (string_of_int i) ^ ":\n") ++ asciiz_c (char_of_int i) )
+        done;
         Hashtbl.fold (fun x _ l -> label x ++ dword [1] ++ l) genv
-          (label "newline" ++ asciiz "\n")
+          (label "newline" ++ asciiz "\n") ++ 
+        !chars ++
+        label "_char_9" ++ asciiz "\t" ++
+        label "_char_10" ++ asciiz "\n" ++
+        label "_char_34" ++ asciiz "\"" ++
+        label "_char_92" ++ asciiz "\\" ++
+        label "_bool_True" ++ asciiz "True" ++
+        label "_bool_False" ++ asciiz "False"
     }
   in
   let f = open_out ofile in
