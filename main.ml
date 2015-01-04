@@ -11,6 +11,8 @@ open UncurriedAst
 open TypedAst
 open Error
 
+(* Définition des options proposées pour l'exécution *)
+
 let usage = "usage : petitghc [options] file.hs"
 
 let opt_parse_only = ref false
@@ -34,6 +36,7 @@ let spec = [
   "--print-typed-ast", Arg.Set opt_print_typed_ast,
       "affiche le résultat du typage"]
 
+(* Ouverture du fichier à compiler *)
 let file =
   let file = ref None in
   let set_file s =
@@ -45,7 +48,12 @@ let file =
     | Some f -> f
     | None -> Arg.usage spec usage ; exit 1
 
+
 let ofile = Filename.chop_suffix file ".hs" ^ ".s"
+
+(* Fonctions permettant l'impression de l'ast à différents moments de la
+ * compilation *)
+
 
 let toks = Hashtbl.create 59
 let () = List.iter (fun (t,s) -> Hashtbl.add toks t s )
@@ -194,6 +202,9 @@ let print_typed_ast =
     | def0::q -> print_def def0 ; printf "\n@." ; print_file q in
   print_file
 
+(* Fonction principale *)
+(* Il y a plusieurs niveaux d'erreurs car l'impression de celles-ci nécessite des
+ * données créées durant la compilation *)
 let () =
   try
     let c = open_in file in
@@ -209,20 +220,12 @@ let () =
           print_ast ast ;
         if !opt_parse_only then
           exit 0 ;
-        let primitives =    (* TODO Délocaliser primitives *)
-            UncurriedAst.S.of_list ["div" ; "rem" ; "putChar" ; "error"] in
-        let uncurried_ast = uncurry_list_def ast primitives in
+        let uncurried_ast = uncurry_list_def ast (Primitives.getNames) in
         if !opt_print_uncurried_ast then
           print_uncurried_ast uncurried_ast ;
         if !opt_uncurry_only then
           exit 0 ;
-        let env = empty_env in
-        let env = add "div" (Tarrow (Tint, Tarrow (Tint, Tint))) env in
-        let env = add "rem" (Tarrow (Tint, Tarrow (Tint, Tint))) env in
-        let env = add "putChar" (Tarrow (Tchar, Tio)) env in
-        let env =
-          add_gen "error" (Tarrow (Tlist Tchar, Tvar (V.create ()))) env in
-        let typed_ast = type_ast uncurried_ast env in
+        let typed_ast = type_ast uncurried_ast Primitives.getEnv in
         if !opt_print_typed_ast then
           print_typed_ast typed_ast ;
         if !opt_type_only then
@@ -236,5 +239,5 @@ let () =
         (*raise (CompilerError "compilateur inexistant")*)
       with e -> Error.error file e
     with e -> Error.error_before_parsing file lb e ;
-  with exc -> eprintf "Anomaly: %s\n@." (Printexc.to_string exc) ;
+  with e -> eprintf "Anomaly: %s\n@." (Printexc.to_string e) ;
       exit 2 (* TODO délocaliser ? *)
