@@ -1,10 +1,12 @@
 
 (* AST typé de Petit-Haskell *)
+(* Utilisation de l'algorithme W avec unification destructive *)
 
-(* TODO sauter plus de lignes *)
 open Error
 open Ast
 open UncurriedAst
+
+(* Structure de l'ast typé *)
 
 type typ =
   | Tbool
@@ -29,7 +31,7 @@ type tdef = ident * ttexpr
 
 and ttexpr = { texpr : texpr; typ : typ }
 
-(* décurrifier *)
+(* TODO décurrifier *)
 and texpr =
   | Tident of ident
   | Tcst of constant
@@ -43,8 +45,9 @@ and texpr =
   | Tdo of ttexpr list
   | Treturn
 
-(* On suit le TD4 -> algorithme W avec unification destrucive *)
 
+
+(* Supprime les variables en tête dont on a trouvé le type *)
 let rec head = function
   | Tvar { def = Some t } -> head t
   | t -> t
@@ -55,8 +58,19 @@ let rec canon t = match head t with
   | Tlist t -> Tlist (canon t)
   | t -> t
 
+(* Gestion des erreurs
+ * Non faisable dans Error car celui-ci ne connaît pas le type typ *)
+
+type unificationError =
+  | CantUnify
+  | NotAFunction
+  | FreeVar of typ * typ
+
+(* Rend un type lisible par un humain avec associativité de Tarrow à droite *)
 let string_of_typ t var_names =
   let r = ref 0 in
+  (* Génère un nouveau nom de variable de type :
+   * dans l'ordre 'a, 'b, ..., 'z, 'a1, 'b1, ..., 'z1, 'a2, ... *)
   let fresh_name id =
     let s = String.make 1 (char_of_int (int_of_char 'a' + !r mod 26)) in
     let s' =
@@ -68,7 +82,7 @@ let string_of_typ t var_names =
     Hashtbl.add var_names id s'' ; 
     incr r ;
     s'' in
-  let rec aux right = function
+  let rec aux right t = match head t with
     | Tbool -> "Bool"
     | Tchar -> "Char"
     | Tint -> "Integer"
@@ -80,17 +94,11 @@ let string_of_typ t var_names =
       else
         "(" ^ s1 ^ " -> " ^ s2 ^ ")"
     | Tlist t -> "[" ^ aux true t ^ "]"
-    | Tvar {def = Some t} -> aux true t
     | Tvar {id = id} -> try
         Hashtbl.find var_names id
       with Not_found ->
         fresh_name id in
   aux true t
-
-type unificationError =
-  | CantUnify
-  | NotAFunction
-  | FreeVar of typ * typ
 
 let type_error loc t1 t2 e =
   let var_names = Hashtbl.create 17 in
@@ -103,6 +111,8 @@ let type_error loc t1 t2 e =
       let s4 = (string_of_typ t4 var_names) in
       Error.FreeVar (s3, s4) in
   raise (TypeError (loc, s1, s2, e))
+
+(* Unification *)
 
 let rec occur v t = match head t with
   | Tvar v' -> V.equal v v'
@@ -123,8 +133,11 @@ let rec unify t1 t2 = match head t1, head t2 with
       v.def <- Some t
   | _ -> raise (UnificationFailure CantUnify)
 
+(* Fonctions concernant l'environnement *)
+
 module Vset = Set.Make(V)
 
+(* Renvoie les variables libres *)
 let rec fvars t = match head t with
   | Tvar v -> Vset.singleton v
   | Tarrow (t1, t2) -> Vset.union (fvars t1) (fvars t2)
@@ -139,17 +152,20 @@ type env = { bindings : schema Smap.t; fvars : Vset.t }
 
 let empty_env = { bindings = Smap.empty; fvars = Vset.empty }
 
+(* Met à jour les variables libres de l'environnement *)
 let maj env =
   let fvars = Vset.fold (fun v fvars' -> Vset.union (fvars (Tvar v)) fvars')
       env.fvars Vset.empty in
   { bindings = env.bindings; fvars = fvars }
 
+(* Ajoute un schéma à l'environnement sans le généraliser *) 
 let add x t env =
   let env = maj env in
   let schema_x = { vars = Vset.empty; styp = t } in
   { bindings = Smap.add x schema_x env.bindings;
     fvars = Vset.union (fvars t) env.fvars }
 
+(* Ajoute un schéma à l'environnement en le généralisant *)
 let add_gen x t env =
   let env = maj env in
   let schema_x = { vars = Vset.diff (fvars t) env.fvars; styp = t } in
@@ -158,6 +174,7 @@ let add_gen x t env =
 
 module Vmap = Map.Make(V)
 
+(* Renvoie une instacle fraîche de env(x) *)
 let find x env =
   let schema_x = Smap.find x env.bindings in
   let new_vars = Vset.fold (fun v new_vars -> Vmap.add v (V.create ()) new_vars)
@@ -172,6 +189,9 @@ let find x env =
     | t -> t in
   aux schema_x.styp
 
+(* Algorithme W *)
+
+(* algorithme w pour les listes de définitions *)
 let rec w_ldef env ludef =
   let new_vars = List.map (fun udef -> (udef, Tvar (V.create ()))) ludef in
   let env' =
@@ -184,6 +204,7 @@ let rec w_ldef env ludef =
     with UnificationFailure e -> type_error ue.locu te.typ t e in
   List.map unify_def new_vars 
 
+(* Algorithme w *)
 and w env e = match e.uexpr with
   | Uident x -> ( try
       { texpr = Tident x; typ = find x env }
@@ -275,7 +296,10 @@ and w env e = match e.uexpr with
     { texpr = Tdo lte; typ = Tio }
   | Ureturn -> { texpr = Treturn; typ = Tio }
 
-(* vérifie au passage que main existe de type Tio *)
+(* Fonction principale *)
+
+(* Applique l'algorithme w à un programme complet
+ * et vérifie que main existe de type Tio *)
 let type_ast uast env =
   let rec find_loc_main = function
     | ("main", {locu = loc})::_ -> loc
