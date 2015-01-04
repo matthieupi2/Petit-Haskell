@@ -95,7 +95,7 @@ type fdef =
   | Fdef of ident * ident list * fexpr
   | Ffun of ident * ident list * ident * fexpr
   | Fcodeglacon of ident * ident list * fexpr
-  | Fmain of fexpr
+  | Fmain of ident list * fexpr
 
 and fexpr =
   | Fident of ident
@@ -109,7 +109,7 @@ and fexpr =
   | Fcase of fexpr * fexpr * ident * ident * fexpr
   | Fdo of fexpr list
   | Freturn
-  | Fglacon of ident
+  | Fglacon of ident * ident list
 
 
 let rec ferm_expr = function
@@ -129,7 +129,7 @@ let rec ferm_expr = function
        let s = ("_fun" ^ (string_of_int (!numfun))) in
        let f1d, f1f = ferm_expr v1 in
        let f2d, f2f = ferm_expr v2 in
-       Fappli (f1d, Fglacon s), (Fcodeglacon (s, v2.var_libres, f2d))::(f1f@f2f)
+       Fappli (f1d, Fglacon (s, v2.var_libres)), (Fcodeglacon (s, v2.var_libres, f2d))::(f1f@f2f)
 
   | {vexpr = Vlambda(i, vv); var_libres = l} -> 
     numfun := !numfun + 1;
@@ -153,7 +153,7 @@ let rec ferm_expr = function
        let s = ("_fun" ^ (string_of_int (!numfun))) in
        let f1d, f1f = ferm_expr v1 in
        let f2d, f2f = ferm_expr v2 in
-       Flet (i, Fglacon s, f2d), (Fcodeglacon (s, v1.var_libres, f1d))::(f1f@f2f)
+       Flet (i, Fglacon (s, v1.var_libres), f2d), (Fcodeglacon (s, v1.var_libres, f1d))::(f1f@f2f)
 
   | {vexpr = Vcase (v1, v2, i1, i2, v3); var_libres = l} -> 
        let f1d, f1f = ferm_expr v1 in
@@ -172,7 +172,7 @@ let rec ferm_expr = function
 
 
 let ferm_def = function
-  | Vdef ("main" , v) -> let fmain, ffun = ferm_expr v in (Fmain fmain)::ffun
+  | Vdef ("main" , v) -> let fmain, ffun = ferm_expr v in (Fmain (v.var_libres, fmain))::ffun
   | Vdef (i, v) -> let fmain, ffun = ferm_expr v in (Fdef (i, v.var_libres, fmain))::ffun
 
 let ferm p = List.concat (List.map ferm_def p)
@@ -182,8 +182,10 @@ let ferm p = List.concat (List.map ferm_def p)
 (* phase 3 : allocation des variables *)
 
 type cdef =
-  | CMain of ident * cexpr * int
-  | CDef of ident * cexpr * int
+  | CDef of ident * ident list * cexpr * int
+  | CFun of ident * ident list * ident * cexpr * int
+  | CCodeglacon of ident * ident list * cexpr * int
+  | CMain of ident list * cexpr * int
 
 and cexpr =
   | CLvar of int
@@ -193,14 +195,14 @@ and cexpr =
   | CBool of bool
   | CList of cexpr list
   | CAppli of cexpr * cexpr
-  | CLambda of int * cexpr
+  | CClos of ident * ident list
   | CBinop of binop * cexpr * cexpr
   | CIf of cexpr * cexpr * cexpr
   | CLet of int * cexpr * cexpr
   | CCase of cexpr * cexpr * int * int * cexpr
   | CDo of cexpr list
   | CReturn
-  | CGlacon of cexpr
+  | CGlacon of ident * ident list
 
 
 exception VarUndef of string
@@ -212,7 +214,68 @@ module Smap = Map.Make(String)
 type local_env = ident Smap.t
 
 let rec alloc_expr env next = function
-  | _ -> CReturn
+  | Fident x -> (
+      try
+        let adr = Smap.find x env in CLvar adr
+      with
+        | Not_found -> if Hashtbl.mem genv x then CGvar x else raise (VarUndef x)
+                ), next
+
+  | Fcst c -> (
+      match c with 
+	    | Cint i -> CInt i
+            | Cchar c -> CChar c
+            | Cbool b -> CBool b
+              ), next
+
+  | Flist l -> 
+      let ll, nn = List.fold_left (fun (l1, n1) e -> let a2, n2 = alloc_expr env next e in
+                                                      (a2::l1, max n1 n2) )
+                                  ([], 0) l
+                   in
+      CList ll, (max nn next)
+
+  | Fappli (e1, e2) ->
+     let a1, n1 = alloc_expr env next e1 in
+     let a2, n2 = alloc_expr env next e2 in
+     CAppli (a1, a2), max n1 n2
+
+  | Fclos (i, l) -> CClos (i, l), next
+
+  | Fbinop (o, e1, e2) ->
+     let a1, n1 = alloc_expr env next e1 in
+     let a2, n2 = alloc_expr env next e2 in
+     CBinop (o, a1, a2), max n1 n2
+
+  | Fif (e1, e2, e3) ->
+     let a1, n1 = alloc_expr env next e1 in
+     let a2, n2 = alloc_expr env next e2 in
+     let a3, n3 = alloc_expr env next e3 in
+     CIf (a1, a2, a3), max (max n1 n2) n3
+
+  | Flet (i, e1, e2) ->
+     let a1, n1 = alloc_expr env next e1 in
+     let a2, n2 = alloc_expr (Smap.add i (-next-4) env) (next+4) e2 in
+     CLet (-next-4, a1, a2), max n1 n2     
+
+  | Fcase (e1, e2, i1, i2, e3) ->
+     let a1, n1 = alloc_expr env next e1 in
+     let a2, n2 = alloc_expr env next e2 in
+     let env1 = Smap.add i2 (-next-8) (Smap.add i1 (-next-4) env) in
+     let a3, n3 = alloc_expr env1 (next+8) e3 in
+     CCase (a1, a2, -next-4, -next-8, a3), max (max n1 n2) n3
+
+  | Fdo l -> 
+      let ll, nn = List.fold_left (fun (l1, n1) e -> let a2, n2 = alloc_expr env next e in
+                                                      (a2::l1, max n1 n2) )
+                                  ([], 0) l
+                   in
+      CDo ll, (max nn next)
+
+  | Freturn -> CReturn, next
+
+  | Fglacon (i, l) -> CGlacon (i, l), next
+
 (*
   | PCst i ->
     Cst i, next
@@ -242,17 +305,40 @@ let rec alloc_expr env next = function
 				   Call (f, List.rev l2), n2
 *)
 
-let alloc_stmt = function
-  | _ -> CDef ("m", CReturn , 1)
+let rec ajout_liste_env env next = function
+  | [] -> env, next
+  | a::q -> let env1, n1 = ajout_liste_env env (next+4) q in
+            Smap.add a (-next-4) env1, n1
+
+let alloc_def = function
+  | Fdef (i, l, e) -> Hashtbl.replace genv i ();
+                      let env1, n1 = ajout_liste_env Smap.empty 0 l in
+                      let a, n = alloc_expr env1 n1 e in
+                      CDef (i, l, a, n)
+
+  | Ffun (i1, l, i2, e) -> Hashtbl.replace genv i1 ();
+                           let env1, n1 = ajout_liste_env Smap.empty 0 l in
+                           let a, n = alloc_expr (Smap.add i2 (-n1-4) env1) (n1+4) e in
+                           CFun (i1, l, i2, a, n)
+
+  | Fcodeglacon (i, l, e) -> Hashtbl.replace genv i ();
+                             let env1, n1 = ajout_liste_env Smap.empty 0 l in
+                             let a, n = alloc_expr env1 n1 e in
+                             CCodeglacon (i, l, a, n)
+
+  | Fmain (l, e) -> let env1, n1 = ajout_liste_env Smap.empty 0 l in
+                    let a, n = alloc_expr env1 n1 e in
+                    CMain (l, a, n)
+
 (*
   | PSet (x, e) ->
-    Hashtbl.replace genv x ();
-    let a, n = alloc_expr Smap.empty 0 e in
-    Set (x, a, n)
+      Hashtbl.replace genv x ();
+      let a, n = alloc_expr Smap.empty 0 e in
+      Set (x, a, n)
 
   | PFun (f, l, e) ->
-  let env, ad = List.fold_right (fun l1 x -> let s,adr = x in
-				     (Smap.add l1 adr s), (adr+4)) l (Smap.empty, 8) in
+      let env, ad = List.fold_right (fun l1 x -> let s,adr = x in
+                                     (Smap.add l1 adr s), (adr+4)) l (Smap.empty, 8) in
 				     let a, n = alloc_expr env 0 e in
 				     Fun (f, a, n)
 
@@ -260,7 +346,8 @@ let alloc_stmt = function
     let e, fpmax = alloc_expr Smap.empty 0 e in
     Print (e, fpmax)
 *)
-let alloc = List.map alloc_stmt
+
+let alloc = List.map alloc_def
 
 (******************************************************************************)
 (* phase 2 : production de code *)
@@ -268,6 +355,8 @@ let alloc = List.map alloc_stmt
 let pushn n = sub sp sp oi n
 
 let rec compile_expr = function
+
+
 | _ -> nop
 (*
 | Cst i ->
@@ -336,6 +425,7 @@ let compile_stmt (codefun, codemain) = function
 
 let compile_program p ofile =
   let p = var_libre p in
+  let p = ferm p in
   let p = alloc p in
   let codefun, code = List.fold_left compile_stmt (nop, nop) p in
   let p =
