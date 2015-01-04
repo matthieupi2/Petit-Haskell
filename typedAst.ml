@@ -174,7 +174,7 @@ let add_gen x t env =
 
 module Vmap = Map.Make(V)
 
-(* Renvoie une instacle fraîche de env(x) *)
+(* Renvoie une instance fraîche de env(x) *)
 let find x env =
   let schema_x = Smap.find x env.bindings in
   let new_vars = Vset.fold (fun v new_vars -> Vmap.add v (V.create ()) new_vars)
@@ -191,7 +191,7 @@ let find x env =
 
 (* Algorithme W *)
 
-(* algorithme w pour les listes de définitions *)
+(* Algorithme W pour les listes de définitions *)
 let rec w_ldef env ludef =
   let new_vars = List.map (fun udef -> (udef, Tvar (V.create ()))) ludef in
   let env' =
@@ -204,7 +204,7 @@ let rec w_ldef env ludef =
     with UnificationFailure e -> type_error ue.locu te.typ t e in
   List.map unify_def new_vars 
 
-(* Algorithme w *)
+(* Algorithme W *)
 and w env e = match e.uexpr with
   | Uident x -> ( try
       { texpr = Tident x; typ = find x env }
@@ -298,7 +298,7 @@ and w env e = match e.uexpr with
 
 (* Fonction principale *)
 
-(* Applique l'algorithme w à un programme complet
+(* Applique l'algorithme W à l'ast décurrifié d'un programme complet
  * et vérifie que main existe de type Tio *)
 let type_ast uast env =
   let rec find_loc_main = function

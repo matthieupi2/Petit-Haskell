@@ -71,7 +71,7 @@ let error file = function
         eprintf "this expression has type %s but is expected to have type %s@."
             t1 t2
       | NotAFunction ->
-        eprintf  "this expression is not a function, it cannot be applied"
+        eprintf  "this expression is not a function, it cannot be applied@."
       | FreeVar (t3, t4) ->
         eprintf "this expression has type %s but is expected to have type %s.@."
             t1 t2 ;
