@@ -9,6 +9,7 @@ open Parser
 open Ast
 open UncurriedAst
 open TypedAst
+open FreeVarsAst
 open Error
 
 (* Définition des options proposées pour l'exécution *)
@@ -22,6 +23,7 @@ let opt_print_tokens = ref false
 let opt_print_ast = ref false
 let opt_print_uncurried_ast = ref false
 let opt_print_typed_ast = ref false
+let opt_print_free_vars_ast = ref false
 
 (* TODO angliciser *)
 let spec = [
@@ -34,7 +36,9 @@ let spec = [
   "--print-uncurried-ast", Arg.Set opt_print_uncurried_ast,
       " affiche le résultat de la décurrification" ;
   "--print-typed-ast", Arg.Set opt_print_typed_ast,
-      "affiche le résultat du typage"]
+      "affiche le résultat du typage" ;
+  "--print-free-vars-ast", Arg.Set opt_print_free_vars_ast, " affiche le
+      résultat de var_libre" ]
 
 (* Ouverture du fichier à compiler *)
 let file =
@@ -198,6 +202,44 @@ let print_typed_ast =
     | def0::q -> print_def def0 ; printf "\n@." ; print_file q in
   print_file
 
+let print_free_vars_ast =
+  let print_cte = function
+    | Cint i -> print_int i
+    | Cchar c -> printf "'%s'" (Char.escaped c)
+    | Cbool true -> printf "True"
+    | Cbool false -> printf "False" in
+  let rec print_expr e = ( match e.vexpr with 
+      | Vident s -> printf " %s" s
+      | Vcst c -> printf " " ; print_cte c
+      | Vlist l -> printf " [" ; List.iter print_expr l ; printf " ]"
+      | Vappli (f, arg) -> printf " (" ; print_expr f ; printf "(" ;
+        print_expr arg ; printf " ))"
+      | Vlambda (arg, e) -> printf " (\\" ;
+        printf " %s" arg ; printf " ->" ; print_expr e ;
+        printf ")"
+      | Vbinop (o, e0, e1) -> printf " (%s" (Hashtbl.find ops o) ;
+      print_expr e0 ; print_expr e1 ; printf ")"
+      | Vif (cdt, e1, e2) -> printf " (if " ; print_expr cdt ; printf " then " ;
+        print_expr e1 ; printf " else " ; print_expr e2 ; printf ")"
+      | Vlet (ld, e) -> printf "(let " ;
+        List.iter (fun d -> print_def d ; printf "\n") ld ; printf "in" ;
+        print_expr e ; printf ")"
+      | Vcase (e, e0, hd, tl, e1) -> printf "case " ; print_expr e ;
+        printf " of\n | [] -> " ; print_expr e0 ; printf "\n | %s:%s -> " hd tl ;
+        print_expr e1 ; printf "\n"
+      | Vdo l ->
+          printf "{" ; List.iter (fun e -> printf "\n" ; print_expr e) l ;
+        printf "\n}"
+      | Vreturn -> printf " ()" ) ;
+    printf "<" ;
+    List.iter (fun x -> printf "%s," x) e.var_libres ;
+    printf ">"
+  and print_def (s, e) = printf "%s=\n" s ; print_expr e in
+  let rec print_file = function
+    | [] -> ()
+    | def0::q -> print_def def0 ; printf "\n@." ; print_file q in
+  print_file
+
 (* Fonction principale *)
 (* Il y a plusieurs niveaux d'erreurs car l'impression de celles-ci nécessite des
  * données créées durant la compilation *)
@@ -226,6 +268,9 @@ let () =
           print_typed_ast typed_ast ;
         if !opt_type_only then
           exit 0 ;
+        let free_vars_ast = var_libre typed_ast in
+        if !opt_print_free_vars_ast then
+          print_free_vars_ast free_vars_ast ;
         raise (CompilerError "compilateur inexistant")
       with e -> Error.error file e
     with e -> Error.error_before_parsing file lb e ;

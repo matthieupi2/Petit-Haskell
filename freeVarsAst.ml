@@ -2,6 +2,7 @@
 open Format
 open Ast
 open TypedAst
+open Error
 
 (* phase 1 : on calcule les variables libres *)
 
@@ -36,7 +37,8 @@ let rec var_libre_expr = function
       match lv.vexpr with
 				| Vlist l1 -> {vexpr = Vlist (v::l1);
           var_libres = union_list v.var_libres lv.var_libres}
-        | _ -> raise (CompileError "1") in
+        | _ ->
+          raise (CompilerError "during transformation from Tlist to Vlist") in
     List.fold_left aux { vexpr = Vlist []; var_libres = []} l
   | Tappli (t1, t2) -> 
     let v1 = var_libre_expr t1.texpr in
@@ -79,7 +81,7 @@ let rec var_libre_expr = function
       match lv.vexpr with
 			  | Vdo l1 -> { vexpr = Vdo (v::l1);
                       var_libres = union_list v.var_libres lv.var_libres}
-        | _ -> raise (CompileError "2") in
+        | _ -> raise (CompilerError "during transformation from Tdo to Vdo") in
     List.fold_left aux {vexpr = Vdo []; var_libres = []} l
   | Treturn -> {vexpr = Vreturn; var_libres = []}
   
