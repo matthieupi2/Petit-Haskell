@@ -9,11 +9,12 @@ open Mips
 let numfun = ref 0
 let numglacon = ref 0
 
-type fdecl =
-  | Fdef of ident * ident list * fexpr
+(* TODO Fmain plus tard ? *)
+type fdecl = (* Variables "globales" *)
+  | Fdef of ident * fexpr
   | Ffun of ident * ident list * ident * fexpr
   | Fcodeglacon of ident * ident list * fexpr
-  | Fmain of ident list * fexpr
+  | Fmain of fexpr
 
 and fdef = ident * fexpr
 
@@ -49,8 +50,8 @@ let rec ferm_expr = function
      (Fcodeglacon (s, v2.var_libres, f2d))::(f1f@f2f)
   | {vexpr = Vlambda(i, vv); var_libres = l} -> 
     numfun := !numfun + 1;
-    let f1, f2 = ferm_expr vv in
     let s = ("_fun_" ^ (string_of_int (!numfun))) in
+    let f1, f2 = ferm_expr vv in
     Fclos (s, l), Ffun (s, l, i, f1)::f2
   | {vexpr = Vbinop (o, v1, v2)} -> 
     let f1d, f1f = ferm_expr v1 in
@@ -83,10 +84,10 @@ let rec ferm_expr = function
   | {vexpr = Vreturn} -> Freturn, []
 
 
-let ferm_def = function (* TODO? pas totues des fonctions *)
+let ferm_def = function (* TODO? pas toutes des fonctions *)
   | ("main" , v) -> let fmain, ffun = ferm_expr v in
-    (Fmain (v.var_libres, fmain))::ffun
-  | (i, v) -> let fmain, ffun = ferm_expr v in
-    (Fdef (i, v.var_libres, fmain))::ffun
+    (Fmain fmain)::ffun
+  | (i, v) -> let fbody, ffun = ferm_expr v in
+    (Fdef (i, fbody))::ffun
 
 let ferm p = List.concat (List.map ferm_def p)
