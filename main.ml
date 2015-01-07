@@ -215,7 +215,7 @@ let print_free_vars_ast =
   let rec print_expr e = ( match e.vexpr with 
       | Vident s -> printf " %s" s
       | Vcst c -> printf " " ; print_cte c
-      | Vlist l -> printf " [" ; List.iter print_expr l ; printf " ]"
+      | Vemptylist -> printf " []"
       | Vappli (f, arg) -> printf " (" ; print_expr f ; printf "(" ;
         print_expr arg ; printf " ))"
       | Vlambda (arg, e) -> printf " (\\" ;
@@ -253,7 +253,7 @@ let print_closure_ast =
   let rec print_expr = function
     | Fident s -> printf " %s" s
     | Fcst c -> printf " " ; print_cte c
-    | Flist l -> printf " [" ; List.iter print_expr l ; printf " ]"
+    | Femptylist -> printf " []"
     | Fappli (f, arg) -> printf " (" ; print_expr f ; printf "(" ;
       print_expr arg ; printf " ))"
     | Fclos (f, fvars) -> printf " clos<" ;

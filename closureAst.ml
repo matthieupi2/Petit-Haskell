@@ -21,7 +21,7 @@ and fdef = ident * fexpr
 and fexpr =
   | Fident of ident
   | Fcst of constant
-  | Flist of fexpr list
+  | Femptylist
   | Fappli of fexpr * fexpr
   | Fclos of ident * ident list
   | Fbinop of binop * fexpr * fexpr
@@ -32,15 +32,11 @@ and fexpr =
   | Freturn
   | Fglacon of ident * ident list
 
-
+(* vvexpr -> fexpr * fdecl *)
 let rec ferm_expr = function
   | {vexpr = Vident i} -> Fident i, []
   | {vexpr = Vcst c} -> Fcst c, []
-  | {vexpr = Vlist l1} -> let aux (l3, lf) vv =
-      let f1, f2 = ferm_expr vv in
-      (f1::l3, f2@lf) in
-    let l2, lf1 = List.fold_left aux ([], []) l1 in
-      Flist l2, lf1
+  | {vexpr = Vemptylist} -> Femptylist, []
   | {vexpr = Vappli (v1, v2); var_libres = l} ->  
      numglacon := !numglacon + 1;
      let s = ("_glacon_" ^ (string_of_int (!numglacon))) in

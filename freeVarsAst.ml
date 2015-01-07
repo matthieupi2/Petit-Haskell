@@ -15,7 +15,7 @@ and vvexpr = {vexpr : vexpr; var_libres : ident list}
 and vexpr =
   | Vident of ident
   | Vcst of constant
-  | Vlist of vvexpr list
+  | Vemptylist
   | Vappli of vvexpr * vvexpr
   | Vlambda of ident * vvexpr
   | Vbinop of binop * vvexpr * vvexpr
@@ -32,14 +32,12 @@ let rec union_list l1 l2 = match l1 with
 let rec var_libre_expr = function
   | Tident i -> {vexpr = Vident i; var_libres = [i]}
   | Tcst c -> {vexpr = Vcst c; var_libres = []}
-  | Tlist l -> let aux lv x =
-      let v = var_libre_expr x.texpr in
-      match lv.vexpr with
-				| Vlist l1 -> {vexpr = Vlist (v::l1);
-          var_libres = union_list v.var_libres lv.var_libres}
-        | _ ->
-          raise (CompilerError "during transformation from Tlist to Vlist") in
-    List.fold_left aux { vexpr = Vlist []; var_libres = []} l
+  | Tlist [] -> {vexpr = Vemptylist; var_libres = []}
+  | Tlist l -> let a = Tvar (V.create ()) in
+    let aux t q =
+      {texpr = Tbinop (Bcol, t, q); typ = a} in
+    let te'= List.fold_right aux l {texpr = Tlist []; typ = a} in
+    var_libre_expr te'.texpr
   | Tappli (t1, t2) -> 
     let v1 = var_libre_expr t1.texpr in
     let v2 = var_libre_expr t2.texpr in

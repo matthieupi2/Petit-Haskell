@@ -18,7 +18,7 @@ and cdef = int * cexpr
 and cexpr =
   | CVar of var
   | CConst of int   (* ascii pour CChar, 0 pour False, sinon True pour CBool *)
-  | CList of cexpr list
+  | CEmptylist
   | CAppli of cexpr * cexpr
   | CClos of ident * var list
   | CBinop of binop * cexpr * cexpr
@@ -47,7 +47,7 @@ let rec alloc_expr env next = function
       | Cchar c -> int_of_char c
       | Cbool b -> if b then 1 else 0 in
     CConst i, next
-  | Flist l -> assert false
+  | Femptylist -> CEmptylist, next
   | Fappli (e1, e2) ->
     let a1, n = alloc_expr env next e1 in
     let a2, _ = alloc_expr env next e2 in
