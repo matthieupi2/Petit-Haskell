@@ -1,8 +1,6 @@
 
-open Format
 open Ast
 open FreeVarsAst
-open Mips
 
 (* phase 2 : construction explicite des fermetures  et des glacons *)
 

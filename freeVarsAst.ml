@@ -1,12 +1,9 @@
 
-open Format
 open Ast
 open TypedAst
 open Error
 
 (* phase 1 : on calcule les variables libres *)
-
-exception CompileError of string
 
 type vdef = ident * vvexpr
 

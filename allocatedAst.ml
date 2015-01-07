@@ -4,8 +4,8 @@ open Ast
 open ClosureAst
 
 type var =
-  | Vglobal of string
-  | Vlocal  of int
+  | Vglobale of string
+  | Vlocale  of int
 
 type cdecl =
   | CDef of ident * cexpr * int
@@ -17,7 +17,7 @@ and cdef = int * cexpr
 
 and cexpr =
   | CVar of var
-  | CConst of int   (* ascii pour CChar, 0 pour False, sinon True pour CBool *)
+  | CCst of int   (* ascii pour CChar, 0 pour False, sinon True pour CBool *)
   | CEmptylist
   | CAppli of cexpr * cexpr
   | CClos of ident * var list
@@ -36,9 +36,9 @@ type local_env = int Smap.t
 
 let find_var env x =
   try
-    Vlocal (Smap.find x env)
+    Vlocale (Smap.find x env)
   with Not_found ->
-    Vglobal x
+    Vglobale x
 
 let rec alloc_expr env next = function
   | Fident x -> CVar (find_var env x), next
@@ -46,7 +46,7 @@ let rec alloc_expr env next = function
       | Cint i -> i
       | Cchar c -> int_of_char c
       | Cbool b -> if b then 1 else 0 in
-    CConst i, next
+    CCst i, next
   | Femptylist -> CEmptylist, next
   | Fappli (e1, e2) ->
     let a1, n = alloc_expr env next e1 in
@@ -112,3 +112,5 @@ let alloc_def = function
   | Fmain e ->
     let a, n = alloc_expr Smap.empty 0 e in
     CMain (a, n)
+
+let alloc = List.map alloc_def

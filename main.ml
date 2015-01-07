@@ -11,6 +11,7 @@ open UncurriedAst
 open TypedAst
 open FreeVarsAst
 open ClosureAst
+open AllocatedAst
 open Error
 
 (* Définition des options proposées pour l'exécution *)
@@ -26,6 +27,7 @@ let opt_print_uncurried_ast = ref false
 let opt_print_typed_ast = ref false
 let opt_print_free_vars_ast = ref false
 let opt_print_closure_ast = ref false
+let opt_print_allocated_ast = ref false
 
 (* TODO angliciser *)
 let spec = [
@@ -42,7 +44,9 @@ let spec = [
   "--print-free-vars-ast", Arg.Set opt_print_free_vars_ast, " affiche le
       résultat de var_libre" ;
   "--print-closure-ast", Arg.Set opt_print_closure_ast, "affiche le résultat de
-      la création des fermetures et des glaçons"]
+      la création des fermetures et des glaçons" ;
+  "--print-allocated-ast", Arg.Set opt_print_closure_ast, "affiche le résultat de
+      l'allocation de variables"]
 
 (* Ouverture du fichier à compiler *)
 let file =
@@ -288,6 +292,46 @@ let print_closure_ast =
     | decl0::q -> print_decl decl0 ; printf "\n@." ; print_file q in
   print_file
 
+let print_allocated_ast =
+  let print_var = function
+    | Vglobale s -> printf "%s" s
+    | Vlocale i -> printf "$%d" i in
+  let rec print_expr = function
+    | CVar v -> printf " " ; print_var v
+    | CCst c -> printf " %d" c
+    | CEmptylist -> printf " []"
+    | CAppli (f, arg) -> printf " (" ; print_expr f ; printf "(" ;
+      print_expr arg ; printf " ))"
+    | CClos (f, fvars) -> printf " clos<" ;
+      List.iter print_var fvars ; printf "> %s" f
+    | CBinop (o, e0, e1) -> printf " (%s" (Hashtbl.find ops o) ;
+      print_expr e0 ; print_expr e1 ; printf ")"
+    | CIf (cdt, e1, e2) -> printf " (if " ; print_expr cdt ; printf " then " ;
+      print_expr e1 ; printf " else " ; print_expr e2 ; printf ")"
+    | CLet (ld, e) -> printf "(let " ;
+      List.iter (fun d -> print_def d ; printf "\n") ld ; printf "in" ;
+      print_expr e ; printf ")"
+    | CCase (e, e0, hd, tl, e1) -> printf "case " ; print_expr e ;
+      printf " of\n | [] -> " ; print_expr e0 ;
+      printf "\n | $%d:$%d -> " hd tl ; print_expr e1 ; printf "\n"
+    | CDo l ->
+      printf "{" ; List.iter (fun e -> printf "\n" ; print_expr e) l ;
+      printf "\n}"
+    | CReturn -> printf " ()" ;
+    | CGlacon (x, fvars) -> printf " Gclos<" ;
+      List.iter print_var fvars ; printf "> %s" x
+  and print_def (i, e) = printf "$%d=\n" i ; print_expr e
+  and print_decl = function
+    | CDef (s, e, n) -> printf "%s[%d]=\n" s n ; print_expr e
+    | CFun (s, nclot, e, n) -> printf "%s[%d]<%d> _ ->" s n nclot ; print_expr e
+    | CCodeglacon (s, nclot, e, n) -> printf "G%s[%d]<%d> _ ->" s n nclot ;
+      print_expr e
+    | CMain (e, n) -> printf "main[%d]=\n" n ; print_expr e in
+  let rec print_file = function
+    | [] -> ()
+    | decl0::q -> print_decl decl0 ; printf "\n@." ; print_file q in
+  print_file
+
 (* Fonction principale *)
 (* Il y a plusieurs niveaux d'erreurs car l'impression de celles-ci nécessite des
  * données créées durant la compilation *)
@@ -322,6 +366,9 @@ let () =
         let closure_ast = ferm free_vars_ast in
         if !opt_print_closure_ast then
           print_closure_ast closure_ast ;
+        let allocated_ast = alloc closure_ast in
+        if !opt_print_allocated_ast then
+          print_allocated_ast allocated_ast ;
         raise (CompilerError "compilateur inexistant")
       with e -> Error.error file e
     with e -> Error.error_before_parsing file lb e ;
