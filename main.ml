@@ -45,8 +45,8 @@ let spec = [
       résultat de var_libre" ;
   "--print-closure-ast", Arg.Set opt_print_closure_ast, "affiche le résultat de
       la création des fermetures et des glaçons" ;
-  "--print-allocated-ast", Arg.Set opt_print_closure_ast, "affiche le résultat de
-      l'allocation de variables"]
+  "--print-allocated-ast", Arg.Set opt_print_allocated_ast,
+      "affiche le résultat de l'allocation de variables"]
 
 (* Ouverture du fichier à compiler *)
 let file =
