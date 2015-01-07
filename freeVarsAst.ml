@@ -1,7 +1,6 @@
 
 open Ast
 open TypedAst
-open Error
 
 (* phase 1 : on calcule les variables libres *)
 
@@ -71,13 +70,14 @@ let rec var_libre_expr = function
       let v3var = List.filter (fun x -> (x<>i1 && x<>i2)) v3.var_libres in
       { vexpr = Vcase (v1, v2, i1, i2, v3);
         var_libres = union_list v1.var_libres (union_list v2.var_libres v3var)}
-  | Tdo l -> let aux lv x =
-      let v = var_libre_expr x.texpr in
-      match lv.vexpr with
-			  | Vdo l1 -> { vexpr = Vdo (v::l1);
-                      var_libres = union_list v.var_libres lv.var_libres}
-        | _ -> raise (CompilerError "during transformation from Tdo to Vdo") in
-    List.fold_left aux {vexpr = Vdo []; var_libres = []} l
+  | Tdo l -> let rec aux = function
+    | [] -> ([], [])
+    | te::q -> let (lv, var_libres) = aux q in
+      let v = var_libre_expr te.texpr in
+      (v::lv, union_list var_libres v.var_libres) in
+    let (lv, var_libres) = aux l in
+    {vexpr = Vdo lv; var_libres = var_libres}
+    (* TODO/ fold_left retourne la liste ! *)
   | Treturn -> {vexpr = Vreturn; var_libres = []}
   
 let var_libre_def (i, tt) = (i, var_libre_expr tt.texpr)

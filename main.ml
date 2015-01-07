@@ -303,7 +303,7 @@ let print_allocated_ast =
     | CAppli (f, arg) -> printf " (" ; print_expr f ; printf "(" ;
       print_expr arg ; printf " ))"
     | CClos (f, fvars) -> printf " clos<" ;
-      List.iter print_var fvars ; printf "> %s" f
+      List.iter (fun v -> print_var v ; printf ",") fvars ; printf "> %s" f
     | CBinop (o, e0, e1) -> printf " (%s" (Hashtbl.find ops o) ;
       print_expr e0 ; print_expr e1 ; printf ")"
     | CIf (cdt, e1, e2) -> printf " (if " ; print_expr cdt ; printf " then " ;
@@ -319,7 +319,7 @@ let print_allocated_ast =
       printf "\n}"
     | CReturn -> printf " ()" ;
     | CGlacon (x, fvars) -> printf " Gclos<" ;
-      List.iter print_var fvars ; printf "> %s" x
+      List.iter (fun v -> print_var v ; printf ",") fvars ; printf "> %s" x
   and print_def (i, e) = printf "$%d=\n" i ; print_expr e
   and print_decl = function
     | CDef (s, e, n) -> printf "%s[%d]=\n" s n ; print_expr e

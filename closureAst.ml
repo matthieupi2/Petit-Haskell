@@ -70,10 +70,10 @@ let rec ferm_expr = function
     let f2d, f2f = ferm_expr v2 in (* TODO? glaçon *)
     let f3d, f3f = ferm_expr v3 in
     Fcase (f1d, f2d, i1, i2, f3d), f1f@f2f@f3f
-  | {vexpr = Vdo l1} -> let aux (l3, lf) vv =
+  | {vexpr = Vdo l1} -> let aux vv (l3, lf) =
       let f1, f2 = ferm_expr vv in
       (f1::l3, f2@lf) in
-    let l2, lf1 = List.fold_left aux ([], []) l1 in
+    let l2, lf1 = List.fold_right aux l1 ([], []) in
     Fdo l2, lf1
   | {vexpr = Vreturn} -> Freturn, []
 

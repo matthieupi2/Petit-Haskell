@@ -82,10 +82,10 @@ let rec alloc_expr env next = function
      let env1 = Smap.add i2 (-next-8) (Smap.add i1 (-next-4) env) in
      let a3, n3 = alloc_expr env1 (next+8) e3 in
      CCase (a1, a2, -next-4, -next-8, a3), max (max n1 n2) n3
-  | Fdo l -> let aux (l1, n1) e =
+  | Fdo l -> let aux e (l1, n1) =
       let a2, n2 = alloc_expr env next e in
       (a2::l1, max n1 n2) in
-    let ll, nn = List.fold_left aux ([], next) l in
+    let ll, nn = List.fold_right aux l ([], next) in
     CDo ll, nn
   | Freturn -> CReturn, next
   | Fglacon (i, l) ->
