@@ -1,16 +1,17 @@
+(* phase 4 : production de code *)
+
 
 open Format
 open Ast
 open AllocatedAst
+open Primitives
+open Error
 open Mips
-
-
-(******************************************************************************)
-(* phase 4 : production de code *)
 
 let numlbl = ref 0
 
 let pushn n = sub sp sp oi n
+
 
 let compile_var = function
   | Vglobale i -> lw v0 alab i
@@ -138,19 +139,16 @@ let rec compile_expr = function
                       li a0 2 ++ sw a0 areg(0, v0) ++ la a0 alab f ++ sw a0 areg(4, v0) ++
                       push a2 ++ c ++
                       pop a0
-
 *)
 
-
-  
-let compile_decl (codefun, codemain) = function
+let compile_decl = function
   | CDef (x, e, fpmax) ->
       let code = compile_expr e in
       let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
       let code =
         pre ++ code ++ post ++ sw v0 alab x
       in
-      codefun, codemain ++ code
+      code
 
   | CFun (f, e, fpmax) ->
       let code = compile_expr e in
@@ -163,7 +161,7 @@ let compile_decl (codefun, codemain) = function
         post ++
         pop ra ++ pop fp ++ jr ra
       in
-      code ++ codefun, codemain
+      code
   (*
   | CCodeglacon (f, nvars, e, fpmax) ->
       let code = compile_expr e in
@@ -184,7 +182,7 @@ let compile_decl (codefun, codemain) = function
         li a1 4 ++ sw a1 areg(0, v0) ++ sw a2 areg(4, v0) ++ sw v0 alab ("_adr" ^ f) ++
         move a0 a2 ++ jr ra
       in
-      code ++ codefun, codemain
+      code
 *)
   | CMain (e, fpmax) ->
       let code = compile_expr e in
@@ -192,92 +190,51 @@ let compile_decl (codefun, codemain) = function
       let code =
         pre ++ code ++ post
       in
-      codefun, codemain ++ code
+      code 
+
+let force =
+  lw t0 areg(0, a0) ++
+  li t1 2 ++
+  bgt t0 t1 "_force_1" ++
+  jr ra ++
+  label "_force_1" ++
+  li t1 3 ++
+  beq t0 t1 "_force_2" ++
+  lw a0 areg(4, a0) ++
+  push ra ++ jal "_force" ++ pop ra ++
+  jr ra ++
+  label "_force_2" ++
+  push ra ++
+  lw a1 areg(4, a0) ++
+  lw a2 areg(4, a1) ++
+  jalr a2 ++
+  pop ra ++
+  jr ra
   
-
-(*
-  | Set (x, e, fpmax) ->
-    let code = compile_expr e in
-    let code =
-      let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
-      pre ++ code ++ pop a0 ++ sw a0 alab x ++ post in
-    codefun, codemain ++ code
-
-  | Fun (f, e, fpmax) ->
-    let code = compile_expr e in
-    let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
-    let code =
-      label f ++
-      push fp ++ push ra ++
-      move fp sp ++ pre ++
+let compile_program p primitives =
+  let rec aux = function
+    | [] -> (nop, nop)
+    | (CMain _ as t)::q -> (fst (aux q), compile_decl t)
+    | t::q -> let codefun, code = aux q in
+      ((compile_decl t) ++ codefun, code) in
+  let codefun, code = aux p in
+  { text =
+      label "main" ++
+      move fp sp ++
       code ++
-      pop a0 ++ post ++
-      pop ra ++ pop fp ++ push a0 ++ jr ra
-    in
-    code ++ codefun, codemain
-
-| Print (e, fpmax) ->
-    let code = compile_expr e in
-    let code =
-      let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
-      pre ++ code ++ pop a0 ++ post ++ jal "print"
-    in
-    codefun, codemain ++ code
-*)
-
-let compile_program p ofile =
-  let codefun, code = List.fold_left compile_decl (nop, nop) p in
-  let p =
-    { text =
-        label "main" ++
-        move fp sp ++
-        code ++
-        li v0 10 ++ (* exit *)
-        syscall ++
-        codefun ++
-        (*********div*********)
-        
-        (*********rem*********)
-        (*********putChar*********)
-        (*********error*********)
-        (*********force*********)
-        label "_force" ++
-        lw t0 areg(0, a0) ++
-        li t1 2 ++
-        bgt t0 t1 "_force_1" ++
-        jr ra ++
-        label "_force_1" ++
-        li t1 3 ++
-        beq t0 t1 "_force_2" ++
-        lw a0 areg(4, a0) ++
-        push ra ++ jal "_force" ++ pop ra ++
-        jr ra ++
-        label "_force_2" ++
-        push ra ++
-        lw a1 areg(4, a0) ++
-        lw a2 areg(4, a1) ++
-        jalr a2 ++
-        pop ra ++
-        jr ra;
-      data =
-        let chars = ref nop in
-        for i=32 to 126 do
-          if i<>34 && i<>92 then (
-            chars := !chars ++ inline ("_char_" ^ (string_of_int i) ^ ":\n") ++ asciiz_c (char_of_int i) )
-        done;
-        (*Hashtbl.fold (fun x _ l -> label x ++ dword [1] ++ l) genv
-          (label "newline" ++ asciiz "\n") ++*) 
-        !chars ++
-        label "_char_9" ++ asciiz "\t" ++
-        label "_char_10" ++ asciiz "\n" ++
-        label "_char_34" ++ asciiz "\"" ++
-        label "_char_92" ++ asciiz "\\" ++
-        label "_bool_True" ++ asciiz "True" ++
-        label "_bool_False" ++ asciiz "False"
-    }
-  in
+      li v0 10 ++ (* exit *)
+      syscall ++
+      codefun ++
+      List.fold_left (fun code prim -> code ++ label prim.name ++ prim.body)
+          nop primitives ++
+      label "_force" ++ force;
+    data =
+      label "newline" ++ asciiz "\n" ++
+      List.fold_left (fun data prim -> data ++ prim.pdata) nop primitives
+  }
+  (*
   let f = open_out ofile in
   let fmt = formatter_of_out_channel f in
   Mips.print_program fmt p;
-  fprintf fmt "@?";
-  close_out f
+  fprintf fmt "@?"; 
+  close_out f *)
