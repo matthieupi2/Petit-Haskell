@@ -24,12 +24,13 @@ let primitives = [
 					; pdata = nop } ;
   { name = "error"; typ = Tarrow (Tlist Tchar, Tvar (V.create ()));
     generalized = true;
-    body = move v0 t0 ++ push ra ++ jal "_force" ++ pop ra ++ label "_error_1" ++
+    body = la a0 alab "_error_text" ++ li v0 4 ++ syscall ++
+    move v0 t0 ++ push ra ++ jal "_force" ++ pop ra ++ label "_error_1" ++
     lw a0 areg(0, v0) ++ beq a0 zero "_error_2" ++
     lw a0 areg(8, v0) ++ push a0 ++ lw v0 areg(4, v0) ++ push ra ++ jal "_force" ++ pop ra ++
     move t0 v0 ++ push ra ++ jal "putChar" ++ pop ra ++ pop v0 ++
     beq zero zero "_error_1" ++ label "_error_2" ++ li a0 1 ++ li v0 17 ++ syscall
-					; pdata = nop } ]
+    ; pdata = label "_error_text" ++ asciiz "error : " } ]
 
 (* Utilisée par UncurriedAst pour vérifier la non redéfinition *)
 let getNames =

@@ -160,7 +160,7 @@ let force =
   pop ra ++
   jr ra
   
-let compile_program p primitives =
+let compile_program p primitives ofile =
   let rec aux = function
     | [] -> (nop, nop, [])
     | (CMain _ as main)::q -> let codefun, _, data = aux q in
@@ -169,33 +169,41 @@ let compile_program p primitives =
       let codefun, code, data = aux q in
       ((compile_decl decl) ++ codefun, code, i::data) in
   let codefun, code, data = aux p in
+  let pp =
   { text =
       label "main" ++
       move fp sp ++
+      (* Création des fermetures des primitives *)
       List.fold_left (fun code prim ->
-        lw v0 alab prim.name ++
-        la a0 alab ("_prim_" ^ prim.name) ++
-        sw a0 areg(4, v0)) nop primitives ++
+        lw t0 alab prim.name ++
+        la t1 alab ("_prim_" ^ prim.name) ++
+        li a0 8 ++
+        li v0 9 ++
+        syscall ++
+        li a0 2 ++
+        sw a0 areg(0, v0) ++
+        sw t0 areg(4, v0) ++
+        sw v0 areg(0, t1)) nop primitives ++
       code ++
       li a0 0 ++
-      li v0 17 ++ (* exit *)
+      li v0 17 ++ (* exit 0 *)
       syscall ++
       codefun ++
-      List.fold_left
-          (fun code prim -> code ++ (label ("_prim_" ^ prim.name)) ++ prim.body)
-          nop primitives ++
+      List.fold_left (fun code prim ->
+        code ++
+        label ("_prim_" ^ prim.name) ++
+        prim.body ) nop primitives ++
       force;
     data =
       label "newline" ++ asciiz "\n" ++
-      List.fold_left (fun data prim -> data ++ prim.pdata) nop primitives ++
       List.fold_left (fun data lbl -> label lbl ++ dword [0] ++ data)
           nop data ++
-      List.fold_left (fun code prim -> code ++ label prim.name ++ dword [2 ; 0])
-          nop primitives
-  }
-  (*
+      List.fold_left (fun code prim -> code ++ label prim.name ++ dword [0])
+          nop primitives ++
+      List.fold_left (fun data prim -> data ++ prim.pdata) nop primitives
+  } in
   let f = open_out ofile in
   let fmt = formatter_of_out_channel f in
-  Mips.print_program fmt p;
+  Mips.print_program fmt pp;
   fprintf fmt "@?"; 
-  close_out f *)
+  close_out f
