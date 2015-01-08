@@ -6,11 +6,12 @@ open ClosureAst
 type var =
   | Vglobale of string
   | Vlocale  of int
+  | Vclos of int
+  | Varg
 
 type cdecl =
   | CDef of ident * cexpr * int
-  | CFun of ident * int * cexpr * int
-  | CCodeglacon of ident * int * cexpr * int
+  | CFun of ident * cexpr * int
   | CMain of cexpr * int
 
 and cdef = int * cexpr
@@ -27,22 +28,15 @@ and cexpr =
   | CCase of cexpr * cexpr * int * int * cexpr
   | CDo of cexpr list
   | CReturn
-  | CGlacon of ident * var list
-
+  | CGlacon of cexpr
 
 module Smap = Map.Make(String)
 
-type local_env = int Smap.t
+type local_env = var Smap.t
 
-let find_var env x =
-  try
-    Vlocale (Smap.find x env)
-  with Not_found ->
-    Vglobale x
-
-let rec alloc_expr env next = function
-  | Fident x -> CVar (find_var env x), next
-  | Fcst c -> let i = match c with 
+let rec alloc_expr (env : local_env) next = function
+  | Fident x -> CVar (Smap.find x env), next
+  | Fcst c -> let i = match c with
       | Cint i -> i
       | Cchar c -> int_of_char c
       | Cbool b -> if b then 1 else 0 in
@@ -53,7 +47,7 @@ let rec alloc_expr env next = function
     let a2, _ = alloc_expr env next e2 in
     CAppli (a1, a2), n
   | Fclos (i, l) ->
-    let l = List.map (find_var env) l in
+    let l = List.map (fun vclos -> Smap.find vclos env) l in
     CClos (i, l), next
   | Fbinop (o, e1, e2) ->
     let a1, n1 = alloc_expr env next e1 in
@@ -66,7 +60,7 @@ let rec alloc_expr env next = function
     CIf (a1, a2, a3), max (max n1 n2) n3
   | Flet (lfdef, e) ->
     let aux (adr, env) (x, _) =
-      (adr - 4, Smap.add x adr env) in
+      (adr - 4, Smap.add x (Vlocale adr) env) in
     let (adr, env') = List.fold_left aux (-next - 4, env) lfdef in
     let next' = -adr - 4 in
     let rec aux adr = function
@@ -79,7 +73,8 @@ let rec alloc_expr env next = function
   | Fcase (e1, e2, i1, i2, e3) ->
      let a1, n1 = alloc_expr env next e1 in
      let a2, n2 = alloc_expr env next e2 in
-     let env1 = Smap.add i2 (-next-8) (Smap.add i1 (-next-4) env) in
+     let env1 = Smap.add i2 (Vlocale (-next-8))
+        (Smap.add i1 (Vlocale (-next-4)) env) in
      let a3, n3 = alloc_expr env1 (next+8) e3 in
      CCase (a1, a2, -next-4, -next-8, a3), max (max n1 n2) n3
   | Fdo l -> let aux e (l1, n1) =
@@ -88,29 +83,37 @@ let rec alloc_expr env next = function
     let ll, nn = List.fold_right aux l ([], next) in
     CDo ll, nn
   | Freturn -> CReturn, next
-  | Fglacon (i, l) ->
-    let l1 = List.map (find_var env) l in
-    CGlacon (i, l1), next
-(* TODO fold_left *)
-let rec ajout_liste_env env next = function
-  | [] -> env, next
-  | a::q -> let env1 = Smap.add a (-next-4) env in
-            ajout_liste_env env1 (next+4) q
+  | Fglacon fe ->
+    CGlacon (fst (alloc_expr env next fe)), next
 
-let alloc_def = function
+let rec alloc_def env = function
   | Fdef (i, e) ->
-    let a, n = alloc_expr Smap.empty 0 e in
+    let a, n = alloc_expr env 0 e in
     CDef (i, a, n)
-  | Ffun (i1, l, i2, e) ->
-    let env1, n1 = ajout_liste_env (Smap.singleton i2 (-4)) 4 l in
-    let a, n = alloc_expr env1 n1 e in
-    CFun (i1, List.length l, a, n)
-  | Fcodeglacon (i, l, e) ->
-    let env1, n1 = ajout_liste_env Smap.empty 0 l in
-    let a, n = alloc_expr env1 n1 e in
-    CCodeglacon (i, List.length l, a, n)
+  | Ffun (i, cloture, x, e) ->
+    alloc_def (Smap.add x Varg env) (Fcodeglacon (i, cloture, e))
+  | Fcodeglacon (i, cloture, e) ->
+    let rec ajout_cloture adr = function
+      | [] -> env
+      | vclos::q -> let env' = ajout_cloture (adr + 4) q in
+        Smap.add vclos (Vclos adr) env' in
+    let env' = ajout_cloture 8 cloture in
+    let a, n = alloc_expr env' 0 e in
+    CFun (i, a, n)
   | Fmain e ->
-    let a, n = alloc_expr Smap.empty 0 e in
+    let a, n = alloc_expr env 0 e in
     CMain (a, n)
 
-let alloc = List.map alloc_def
+let alloc p prim_names =
+  let rec create_genv = function
+    | [] -> List.fold_left (fun env prim -> Smap.add prim (Vglobale prim) env)
+        Smap.empty prim_names
+    | t::q -> let env = create_genv q in
+      let i = match t with
+        | Fmain _ -> "main"
+        | Fdef (i, _)
+        | Ffun (i, _, _, _)
+        | Fcodeglacon (i, _, _) -> i in
+      Smap.add i (Vglobale i) env in
+  let env = create_genv p in
+  List.map (alloc_def env) p

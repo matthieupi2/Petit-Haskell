@@ -28,19 +28,19 @@ and fexpr =
   | Fcase of fexpr * fexpr * ident * ident * fexpr
   | Fdo of fexpr list
   | Freturn
-  | Fglacon of ident * ident list
+  | Fglacon of fexpr
 
 (* vvexpr -> fexpr * fdecl *)
 let rec ferm_expr = function
   | {vexpr = Vident i} -> Fident i, []
   | {vexpr = Vcst c} -> Fcst c, []
   | {vexpr = Vemptylist} -> Femptylist, []
-  | {vexpr = Vappli (v1, v2); var_libres = l} ->  
+  | {vexpr = Vappli (v1, v2)} ->  
      numglacon := !numglacon + 1;
      let s = ("_glacon_" ^ (string_of_int (!numglacon))) in
      let f1d, f1f = ferm_expr v1 in
      let f2d, f2f = ferm_expr v2 in
-     Fappli (f1d, Fglacon (s, v2.var_libres)),
+     Fappli (f1d, Fglacon (Fclos (s, v2.var_libres))),
      (Fcodeglacon (s, v2.var_libres, f2d))::(f1f@f2f)
   | {vexpr = Vlambda(i, vv); var_libres = l} -> 
     numfun := !numfun + 1;
@@ -60,7 +60,7 @@ let rec ferm_expr = function
       numglacon := !numglacon + 1;
       let s = ("_glacon_" ^ (string_of_int (!numglacon))) in
       let fd, ff = ferm_expr v in
-      ((x, Fglacon (s, v.var_libres))::lfdef,
+      ((x, Fglacon (Fclos (s, v.var_libres)))::lfdef,
       Fcodeglacon (s, v.var_libres, fd)::ff@lff) in 
     let fd, ff = ferm_expr v in
     let lfdef, lff = List.fold_left aux ([], ff) lvdef in
