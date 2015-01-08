@@ -115,7 +115,10 @@ let rec compile_expr = function
     sw a2 areg(adr2, fp) ++ code_e3 ++ label s2
   | CDo l -> List.fold_right (fun e c -> compile_expr e ++ c) l nop
   | CReturn -> nop
-  | CGlacon e -> assert false
+  | CGlacon e ->
+    let code = compile_expr e in
+    code ++ move a1 v0 ++ li a0 8 ++ li v0 9 ++ syscall ++
+    li a0 3 ++ sw a0 areg(0, v0) ++ sw a1 areg(4, v0)
 
 let compile_decl = function
   | CDef (x, e, fpmax) ->
