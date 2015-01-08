@@ -46,7 +46,7 @@ let rec compile_expr = function
         c ++ compile_var v ++ sw v0 areg(n, t2), n+4 )
         (nop, 8) l in
     li a0 (4*(List.length l) + 8) ++ li v0 9 ++ syscall ++ move t2 v0 ++
-    li a0 2 ++ sw a0 areg (0, t2) ++ la a0 alab f ++ sw a0 areg (4, t2) ++
+    li a0 2 ++ sw a0 areg (0, t2) ++ la a0 alab ("_code" ^ f) ++ sw a0 areg (4, t2) ++
     code ++ move v0 t2
   | CBinop (o, e1, e2) ->
     (* TODO new_lbl () *)
@@ -128,7 +128,7 @@ let compile_decl = function
   | CFun (f, e, fpmax) ->
     let code = compile_expr e in
     let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
-    label f ++
+    label ("_code" ^ f) ++
     push fp ++ push ra ++
     move fp sp ++ pre ++
     code ++
