@@ -1,5 +1,11 @@
 (* phase 4 : production de code *)
 
+(* conventions d'appel :
+ - on passe l'argument dans t0 et la cloture dans t1
+ - on renvoie un pointeur dans v0
+ - la fonction force prend un pointeur dans v0 et renvoie un pointeur dans v0 (le meme)
+*)
+
 
 open Format
 open Ast
@@ -42,14 +48,6 @@ let rec compile_expr = function
                     li a0 (4*(List.length l) + 8) ++ li v0 9 ++ syscall ++ move t2 v0 ++
                     li a0 2 ++ sw a0 areg (0, t2) ++ la a0 alab f ++ sw a0 areg (4, t2) ++ code ++ move v0 t2
 
-(*  | CClos (f, l) -> let c, n1 = List.fold_left (fun (code,n) y ->
-                                                code ++ lw a0 areg(y, fp) ++ sw a0 areg(n, v0)
-                                                , n+4 )
-                                               (nop, 8) l in
-                    li a0 (4*(List.length l) + 8) ++ li v0 9 ++ syscall ++
-                    li a0 2 ++ sw a0 areg(0, v0) ++ la a0 alab f ++ sw a0 areg(4, v0) ++ c ++
-                    move a0 v0
- *)
   | CBinop (o, e1, e2) -> 
       numlbl := !numlbl + 2;
       let s1 = ("_lbl_" ^ (string_of_int (!numlbl-1))) in
@@ -106,10 +104,6 @@ let rec compile_expr = function
                                               l nop in
                    code ++ compile_expr e
 
-(*  | CLet (adr, e1, e2) -> let code_e1 = compile_expr e1 in
-                          let code_e2 = compile_expr e2 in
-                          code_e1 ++ sw a0 areg(adr, fp) ++ code_e2
-*)
   | CCase (e1, e2, adr1, adr2, e3) -> 
       numlbl := !numlbl + 2;
       let s1 = ("_lbl_" ^ (string_of_int (!numlbl-1))) in
@@ -128,18 +122,6 @@ let rec compile_expr = function
 
   | CGlacon e -> nop
 
-  (*  | CGlacon (f, l) -> let c, n1 = List.fold_left (fun (code,n) y ->
-                                                  code ++ lw a0 areg(y, fp) ++ sw a0 areg(n, v0)
-                                                  , n+4 )
-                                                 (nop, 8) l in
-                      li a0 8 ++ li v0 9 ++ syscall ++
-                      sw v0 alab ("_adr" ^ f) ++
-                      li a0 3 ++ sw a0 areg(0, v0) ++ move a2 v0 ++
-                      li a0 (4*(List.length l) + 8) ++ li v0 9 ++ syscall ++ sw v0 areg(4, a2) ++
-                      li a0 2 ++ sw a0 areg(0, v0) ++ la a0 alab f ++ sw a0 areg(4, v0) ++
-                      push a2 ++ c ++
-                      pop a0
-*)
 
 let compile_decl = function
   | CDef (x, e, fpmax) ->
@@ -162,28 +144,7 @@ let compile_decl = function
         pop ra ++ pop fp ++ jr ra
       in
       code
-  (*
-  | CCodeglacon (f, nvars, e, fpmax) ->
-      let code = compile_expr e in
-      let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
-      let vars = ref nop in
-      for i=2 to (nvars+1) do
-        vars := !vars ++ lw t0 areg(4*i, fp) ++ sw t0 areg((-4)*i+4, fp)
-      done;
-      let code =
-        label f ++
-        push fp ++ push ra ++
-        move fp sp ++ pre ++ !vars ++
-        code ++
-        post ++
-        push ra ++ jal "_force" ++ pop ra ++
-        pop ra ++ pop fp ++
-        move a2 a0 ++ li a0 8 ++ li v0 9 ++ syscall ++
-        li a1 4 ++ sw a1 areg(0, v0) ++ sw a2 areg(4, v0) ++ sw v0 alab ("_adr" ^ f) ++
-        move a0 a2 ++ jr ra
-      in
-      code
-*)
+  
   | CMain (e, fpmax) ->
       let code = compile_expr e in
       let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
@@ -193,21 +154,24 @@ let compile_decl = function
       code 
 
 let force =
-  lw t0 areg(0, a0) ++
-  li t1 2 ++
-  bgt t0 t1 "_force_1" ++
+  label "_force" ++
+  lw a0 areg(0, v0) ++
+  li a1 2 ++
+  bgt a0 a1 "_force_1" ++
   jr ra ++
   label "_force_1" ++
-  li t1 3 ++
-  beq t0 t1 "_force_2" ++
-  lw a0 areg(4, a0) ++
+  li a1 3 ++
+  beq a0 a1 "_force_2" ++
+  lw v0 areg(4, v0) ++
   push ra ++ jal "_force" ++ pop ra ++
   jr ra ++
   label "_force_2" ++
-  push ra ++
-  lw a1 areg(4, a0) ++
-  lw a2 areg(4, a1) ++
-  jalr a2 ++
+  push ra ++ push t0 ++ push t1 ++ push v0 ++
+  lw t1 areg(4, v0) ++
+  lw t2 areg(4, t1) ++
+  jalr a2 ++ push ra ++ jal "_force" ++ pop ra ++ move a1 v0 ++
+  pop v0 ++ pop t1 ++ pop t0 ++
+  li a0 4 ++ sw a0 areg(0, v0) ++ sw a1 areg(4, v0) ++
   pop ra ++
   jr ra
   
@@ -227,7 +191,7 @@ let compile_program p primitives =
       codefun ++
       List.fold_left (fun code prim -> code ++ label prim.name ++ prim.body)
           nop primitives ++
-      label "_force" ++ force;
+      force;
     data =
       label "newline" ++ asciiz "\n" ++
       List.fold_left (fun data prim -> data ++ prim.pdata) nop primitives
