@@ -29,19 +29,19 @@ let compile_var = function
 (* Ne change pas $t0, $t1, $ra *)
 (* Registre de renvoi : $v0 *)
 let rec compile_expr = function
-  | CVar v -> compile_var v
-  | CCst i -> li v0 9 ++ li a0 8 ++ syscall ++
+  | CVar v -> comment "CVar" ++ compile_var v
+  | CCst i -> comment "CCst" ++ li v0 9 ++ li a0 8 ++ syscall ++
     sw zero areg (0, v0) ++ li a0 i ++ sw a0 areg (4, v0)
-  | CEmptylist -> li v0 9 ++ li a0 8 ++ syscall ++
+  | CEmptylist -> comment "CEmptylist" ++ li v0 9 ++ li a0 8 ++ syscall ++
     sw zero areg (0, v0) ++ sw zero areg(4, v0)
-  | CAppli (e1, e2) ->
+  | CAppli (e1, e2) -> comment "CAppli" ++
     let code_e1 = compile_expr e1 in
     let code_e2 = compile_expr e2 in
     push t0 ++ push t1 ++
     code_e1 ++ push ra ++ jal "_force" ++ pop ra ++ push v0 ++
     code_e2 ++ move t0 v0 ++ pop t1 ++ lw t2 areg (4, t1) ++ jalr t2 ++
     pop t1 ++ pop t0
-  | CClos (f, l) ->
+  | CClos (f, l) -> comment "CClos" ++
     let code, n1 = List.fold_left (fun (c,n) v ->
         c ++ compile_var v ++ sw v0 areg(n, t2), n+4 )
         (nop, 8) l in
@@ -50,7 +50,7 @@ let rec compile_expr = function
     code ++ move v0 t2
   | CBinop (o, e1, e2) ->
     (* TODO new_lbl () *)
-    numlbl := !numlbl + 2;
+    numlbl := !numlbl + 2; comment "CBinop" ++
     let s1 = ("_lbl_" ^ (string_of_int (!numlbl-1))) in
     let code_e1 = compile_expr e1 in
     let code_e2 = compile_expr e2 in
@@ -88,7 +88,7 @@ let rec compile_expr = function
         ++ li a0 8 ++ li v0 9 ++ syscall ++
         sw zero areg(0, v0) ++ sw a2 areg(4, v0) )
   | CIf (e1, e2, e3) ->
-      numlbl := !numlbl + 2;
+      numlbl := !numlbl + 2; comment "CIf" ++
       let s1 = ("_lbl_" ^ (string_of_int (!numlbl-1))) in
       let s2 = ("_lbl_" ^ (string_of_int (!numlbl))) in
       let code_e1 = compile_expr e1 in
@@ -101,31 +101,33 @@ let rec compile_expr = function
       let c1 = compile_expr e1 in
       c1 ++ sw v0 areg (i1, fp) ++ c in
     let code = List.fold_right aux l nop in
-    code ++ compile_expr e
-  | CCase (e1, e2, adr1, adr2, e3) -> 
+    comment "CLet" ++ code ++ compile_expr e
+  | CCase (e1, e2, adr1, adr2, e3) ->
     numlbl := !numlbl + 2;
     let s1 = ("_lbl_" ^ (string_of_int (!numlbl-1))) in
     let s2 = ("_lbl_" ^ (string_of_int (!numlbl))) in
     let code_e1 = compile_expr e1 in
     let code_e2 = compile_expr e2 in
     let code_e3 = compile_expr e3 in
+    comment "CCase" ++ 
     code_e1 ++ push ra ++ jal "_force" ++ pop ra ++ lw a1 areg (0, v0) ++
     bne a1 zero s1 ++ code_e2 ++ b s2 ++ label s1 ++
     lw a1 areg(4, v0) ++ lw a2 areg(8, v0) ++ sw a1 areg(adr1, fp) ++
     sw a2 areg(adr2, fp) ++ code_e3 ++ label s2
-  | CDo l -> List.fold_right (fun e c -> compile_expr e ++ c) l nop
-  | CReturn -> nop
-  | CGlacon e ->
+  | CDo l -> comment "CDo" ++
+    List.fold_right (fun e c -> compile_expr e ++ c) l nop
+  | CReturn -> comment "CReturn"
+  | CGlacon e -> comment "CGlacon" ++
     let code = compile_expr e in
     code ++ move a1 v0 ++ li a0 8 ++ li v0 9 ++ syscall ++
     li a0 3 ++ sw a0 areg(0, v0) ++ sw a1 areg(4, v0)
 
 let compile_decl = function
-  | CDef (x, e, fpmax) ->
+  | CDef (x, e, fpmax) -> comment ("CDef" ^ x) ++
     let code = compile_expr e in
     let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
     pre ++ code ++ post ++ sw v0 alab x
-  | CFun (f, e, fpmax) ->
+  | CFun (f, e, fpmax) -> comment ("CFun" ^ f) ++
     let code = compile_expr e in
     let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
     label ("_code" ^ f) ++
