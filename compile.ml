@@ -161,6 +161,7 @@ let force =
   jalr t2 ++ jal "_force" ++ move a1 v0 ++
   pop v0 ++ pop t1 ++
   li a0 4 ++ sw a0 areg(0, v0) ++ sw a1 areg(4, v0) ++
+  move v0 a1 ++
   pop ra ++
   jr ra
   
