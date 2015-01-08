@@ -14,14 +14,43 @@ let primitives = [
   { name = "div";
     typ = Tarrow (Tint, Tarrow (Tint, Tint));
     generalized = false;
-    body = nop;
+    body = push fp ++ push ra ++ move fp sp ++
+    li a0 12 ++ li v0 9 ++ syscall ++
+    li a1 2 ++ sw a1 areg(0, v0) ++
+    la a1 alab "_div_1" ++ sw a1 areg(4, v0) ++ sw t0 areg(8, v0) ++
+    pop ra ++ pop fp ++ jr ra ++
+
+    label "_div_1" ++ push fp ++ push ra ++ move fp sp ++
+    move v0 t0 ++ push ra ++ jal "_force" ++ pop ra ++
+    push v0 ++ lw v0 areg(8, t1) ++ push ra ++ jal "_force" ++ pop ra ++ pop a0 ++
+    lw a0 areg(4, a0) ++ lw a1 areg(4, v0) ++
+    bne a1 zero "_div_pas_par_0" ++ li v0 17 ++ li a0 1 ++ syscall ++ label "_div_pas_par_0" ++
+    div a2 a0 oreg a1 ++ (* TODO 1 chance sur 2 pour que ce soit l'inverse*)
+    li a0 8 ++ li v0 9 ++ syscall ++
+    sw zero areg(0, v0) ++ sw a2 areg(4, v0) ++
+    pop ra ++ pop fp ++ jr ra
 (* _div : [a] x -> x/a
    div : y -> _div [y] *)
-	 pdata = nop} ;
+	; pdata = nop} ;
   { name = "rem";
     typ = Tarrow (Tint, Tarrow (Tint, Tint));
     generalized = false;
-    body = nop ; pdata = nop } ;
+    body = push fp ++ push ra ++ move fp sp ++
+    li a0 12 ++ li v0 9 ++ syscall ++
+    li a1 2 ++ sw a1 areg(0, v0) ++
+    la a1 alab "_rem_1" ++ sw a1 areg(4, v0) ++ sw t0 areg(8, v0) ++
+    pop ra ++ pop fp ++ jr ra ++
+
+    label "_rem_1" ++ push fp ++ push ra ++ move fp sp ++
+    move v0 t0 ++ push ra ++ jal "_force" ++ pop ra ++
+    push v0 ++ lw v0 areg(8, t1) ++ push ra ++ jal "_force" ++ pop ra ++ pop a0 ++
+    lw a0 areg(4, a0) ++ lw a1 areg(4, v0) ++
+    bne a1 zero "_rem_pas_par_0" ++ li v0 17 ++ li a0 1 ++ syscall ++ label "_rem_pas_par_0" ++
+    rem a2 a0 oreg a1 ++ (* TODO 1 chance sur 2 pour que ce soit l'inverse*)
+    li a0 8 ++ li v0 9 ++ syscall ++
+    sw zero areg(0, v0) ++ sw a2 areg(4, v0) ++
+    pop ra ++ pop fp ++ jr ra
+	 ; pdata = nop } ;
   { name = "putChar";
     typ = Tarrow (Tchar, Tio); generalized = false; 
     body = move v0 t0 ++ push ra ++ jal "_force" ++ pop ra ++
