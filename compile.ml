@@ -73,7 +73,8 @@ let rec compile_expr l =
           ++ code_e2 ++ label s1
         | _ ->
           push ra ++ code_e1 ++ push v0 ++ code_e2 ++ jal "_force" ++
-          move a1 v0 ++ pop v0 ++ jal "_force" ++ pop ra ++ lw a0 areg (4, v0) ++
+          move a1 v0 ++ pop v0 ++ push a1 ++ jal "_force" ++ pop a1 ++ pop ra ++ 
+          lw a0 areg (4, v0) ++
           lw a1 areg (4, a1) ++
           ( match o with
             | Badd -> add a2 a0 oreg a1
