@@ -11,34 +11,11 @@ let pushn n = sub sp sp oi n
 
 let rec compile_expr = function
   | _ -> assert false
-  (* | CLvar adr -> lw a0 areg(adr, fp)
-
-  | CGvar i -> la a0 alab i
-
-  | CInt i -> li v0 9 ++ li a0 8 ++ syscall ++
-              sw zero areg(0, v0) ++ li a0 i ++ sw a0 areg(4, v0) ++ move a0 v0
-
-  | CChar c -> li v0 9 ++ li a0 8 ++ syscall ++
-               sw zero areg(0, v0) ++ la a0 alab ("_char_" ^ (string_of_int (int_of_char c))) ++
-               sw a0 areg(4, v0) ++ move a0 v0
-
-  | CBool b -> li v0 9 ++ li a0 8 ++ syscall ++
-               sw zero areg(0, v0) ++ la a0 alab (if b then "_bool_True" else "_bool_False") ++
-               sw a0 areg(4, v0) ++ move a0 v0
-
-  | CList [] -> li v0 9 ++ li a0 8 ++ syscall ++
-                sw zero areg(0, v0) ++ sw zero areg(4, v0) ++ move a0 v0
-
-  | CList (a::q) -> let code = compile_expr (CList q) in
-                    code ++ push a0 ++ compile_expr a ++ move a1 a0 ++ pop a2 ++
-                    li v0 9 ++ li a0 12 ++ syscall ++ li a0 1 ++
-                    sw a0 areg(0, v0) ++ sw a1 areg(4, v0) ++ sw a2 areg(8, v0) ++ move a0 v0
-
+(*| CVar adr -> lw a0 areg(adr, fp)
   | CAppli (e1, e2) -> let code_e1 = compile_expr e1 in
                        let code_e2 = compile_expr e2 in
                        code_e1 ++ push ra ++ jal "_force" ++ pop ra ++ push a0 ++
                        code_e2 ++ pop a1 ++ lw t0 areg(4, a1) ++ jalr t0
-
   | CClos (f, l) -> let c, n1 = List.fold_left (fun (code,n) y ->
                                                 code ++ lw a0 areg(y, fp) ++ sw a0 areg(n, v0)
                                                 , n+4 )
@@ -48,29 +25,43 @@ let rec compile_expr = function
                     move a0 v0
 
   | CBinop (o, e1, e2) -> 
-      numlbl := !numlbl + 1;
-      let s = ("_lbl_" ^ (string_of_int (!numlbl))) in
+      numlbl := !numlbl + 2;
+      let s1 = ("_lbl_" ^ (string_of_int (!numlbl-1))) in
+      let s2 = ("_lbl_" ^ (string_of_int (!numlbl))) in
       let code_e1 = compile_expr e1 in
       let code_e2 = compile_expr e2 in
-      code_e1 ++ push a0 ++ code_e2 ++ push ra ++ jal "_force" ++
-      lw a1 areg (4, sp) ++ sw a0 areg (4, sp) ++ move a0 a1 ++ jal "_force" ++
-      pop ra ++ pop a1 ++ lw a0 areg (4, a0) ++ lw a1 areg (4, a1) ++ (
-      match o with
-	| Badd -> add a2 a0 oreg a1
-        | Bsub -> sub a2 a0 oreg a1
-        | Bmul -> mul a2 a0 oreg a1
-        | Band -> move a2 a0 ++ beq a2 a1 s ++ la a2 alab "_bool_False" ++ label s
-        | Bor -> move a2 a0 ++ beq a2 a1 s ++ la a2 alab "_bool_True" ++ label s
-        | Blt -> la a2 alab "_bool_True" ++ blt a0 a1 s ++ la a2 alab "_bool_False" ++ label s
-        | Bleq -> la a2 alab "_bool_True" ++ ble a0 a1 s ++ la a2 alab "_bool_False" ++ label s
-        | Bgt -> la a2 alab "_bool_True" ++ bgt a0 a1 s ++ la a2 alab "_bool_False" ++ label s
-        | Bgeq -> la a2 alab "_bool_True" ++ bge a0 a1 s ++ la a2 alab "_bool_False" ++ label s
-        | Beq -> la a2 alab "_bool_True" ++ beq a0 a1 s ++ la a2 alab "_bool_False" ++ label s
-        | Bneq -> la a2 alab "_bool_True" ++ bne a0 a1 s ++ la a2 alab "_bool_False" ++ label s
-        | Bcol -> nop
+      ( match o with 
+        | Band | Bor | Bcol -> (
+        if o = Bcol then (
+          code_e1 ++ push a0 ++ code_e2 ++ pop a1 ++ move a2 a0 ++
+          li a0 12 ++ li v0 9 ++ syscall ++ li t0 1 ++ sw t0 areg(0, v0) ++ sw a1 areg(4, v0) ++ sw a2 areg(8, v0) ++ move a0 v0
+         )
+        else (
+          code_e1 ++ push ra ++ jal "_force" ++ pop ra ++ lw a1 areg (4, a0) ++(
+          match o with
+            | Band -> li a2 0 ++ beq a2 a1 s1 ++ code_e2 ++ beq zero zero s2 ++ label s1 ++ li a0 8 ++ li v0 9 ++ syscall ++ sw zero areg(0, v0) ++ sw a2 areg(4, v0) ++ move a0 v0 ++ label s2
+            | Bor -> li a2 1 ++ beq a2 a1 s1 ++ code_e2 ++ beq zero zero s2 ++ label s1 ++ li a0 8 ++ li v0 9 ++ syscall ++ sw zero areg(0, v0) ++ sw a2 areg(4, v0) ++ move a0 v0 ++ label s2
+            | _ -> failwith "Erreur 2"
+          ))
+        )
+        | _ -> (
+        code_e1 ++ push a0 ++ code_e2 ++ push ra ++ jal "_force" ++
+        lw a1 areg (4, sp) ++ sw a0 areg (4, sp) ++ move a0 a1 ++ jal "_force" ++
+        pop ra ++ pop a1 ++ lw a0 areg (4, a0) ++ lw a1 areg (4, a1) ++ (
+        match o with
+          | Badd -> add a2 a0 oreg a1
+          | Bsub -> sub a2 a0 oreg a1
+          | Bmul -> mul a2 a0 oreg a1
+          | Blt -> li a2 1 ++ blt a0 a1 s ++ li a2 0 ++ label s1
+          | Bleq -> li a2 1 ++ ble a0 a1 s ++ li a2 0 ++ label s1
+          | Bgt -> li a2 1 ++ bgt a0 a1 s ++ li a2 0 ++ label s1
+          | Bgeq -> li a2 1 ++ bge a0 a1 s ++ li a2 0 ++ label s1
+          | Beq -> li a2 1 ++ beq a0 a1 s ++ li a2 0 ++ label s1
+          | Bneq -> li a2 1 ++ bne a0 a1 s ++ li a2 0 ++ label s1
+          | _ -> failwith "Erreur 1"
       ) ++
       li a0 8 ++ li v0 9 ++ syscall ++
-      sw zero areg(0, v0) ++ sw a2 areg(4, v0) ++ move a0 v0
+      sw zero areg(0, v0) ++ sw a2 areg(4, v0) ++ move a0 v0 ) )
   
   | CIf (e1, e2, e3) ->
       numlbl := !numlbl + 2;
@@ -114,7 +105,6 @@ let rec compile_expr = function
                       push a2 ++ c ++
                       pop a0
 *)
-
 
 let compile_decl = function
   | _ -> assert false
