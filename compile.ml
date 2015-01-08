@@ -160,7 +160,7 @@ let force =
   pop ra ++
   jr ra
   
-let compile_program p primitives ofile =
+let compile_program p primitives =
   let rec aux = function
     | [] -> (nop, nop, [])
     | (CMain _ as main)::q -> let codefun, _, data = aux q in
@@ -169,7 +169,6 @@ let compile_program p primitives ofile =
       let codefun, code, data = aux q in
       ((compile_decl decl) ++ codefun, code, i::data) in
   let codefun, code, data = aux p in
-  let pp =
   { text =
       label "main" ++
       move fp sp ++
@@ -201,9 +200,4 @@ let compile_program p primitives ofile =
       List.fold_left (fun code prim -> code ++ label prim.name ++ dword [0])
           nop primitives ++
       List.fold_left (fun data prim -> data ++ prim.pdata) nop primitives
-  } in
-  let f = open_out ofile in
-  let fmt = formatter_of_out_channel f in
-  Mips.print_program fmt pp;
-  fprintf fmt "@?"; 
-  close_out f
+  }

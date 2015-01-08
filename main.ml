@@ -12,6 +12,7 @@ open TypedAst
 open FreeVarsAst
 open ClosureAst
 open AllocatedAst
+open Compile
 open Error
 
 (* Définition des options proposées pour l'exécution *)
@@ -60,12 +61,19 @@ let file =
     | Some f -> f
     | None -> Arg.usage spec usage ; exit 1
 
-
+ (* Fichier d'écriture *)
 let ofile = Filename.chop_suffix file ".hs" ^ ".s"
+
+(* Ecriture du code Mips *)
+let write_code code_mips =
+  let f = open_out ofile in
+  let fmt = formatter_of_out_channel f in
+  Mips.print_program fmt code_mips; 
+  fprintf fmt "@?"; 
+  close_out f
 
 (* Fonctions permettant l'impression de l'ast à différents moments de la
  * compilation *)
-
 
 let toks = Hashtbl.create 59
 let () = List.iter (fun (t,s) -> Hashtbl.add toks t s )
@@ -371,9 +379,9 @@ let () =
         let allocated_ast = alloc closure_ast Primitives.getNames in
         if !opt_print_allocated_ast then
           print_allocated_ast allocated_ast ;
-        Compile.compile_program allocated_ast Primitives.primitives ofile
-        (*raise (CompilerError "compilateur inexistant")*)
+        let code_mips = compile_program allocated_ast Primitives.primitives in
+        write_code code_mips
       with e -> Error.error file e
     with e -> Error.error_before_parsing file lb e ;
   with e -> eprintf "Anomaly: %s\n@." (Printexc.to_string e) ;
-      exit 2 (* TODO délocaliser ? *)
+    exit 2 (* TODO délocaliser ? *)
