@@ -96,7 +96,7 @@ let rec compile_expr l =
         let code_e2 = compile_expr e2 in
         let code_e3 = compile_expr e3 in
         code_e1 ++ push ra ++ jal "_force" ++ pop ra ++ lw a1 areg (4, v0) ++
-        bne a1 zero s1 ++ code_e2 ++ b s2 ++ label s1 ++ code_e3 ++ label s2
+        beq a1 zero s1 ++ code_e2 ++ b s2 ++ label s1 ++ code_e3 ++ label s2
     | CLet (l, e) ->
       let aux (i1,e1) c =
         let c1 = compile_expr e1 in
