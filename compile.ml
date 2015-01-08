@@ -149,14 +149,13 @@ let force =
   li a1 3 ++
   beq a0 a1 "_force_2" ++
   lw v0 areg(4, v0) ++
-  push ra ++ jal "_force" ++ pop ra ++
   jr ra ++
   label "_force_2" ++
-  push ra ++ push t0 ++ push t1 ++ push v0 ++
+  push ra ++ push t1 ++ push v0 ++
   lw t1 areg(4, v0) ++
   lw t2 areg(4, t1) ++
-  jalr a2 ++ push ra ++ jal "_force" ++ pop ra ++ move a1 v0 ++
-  pop v0 ++ pop t1 ++ pop t0 ++
+  jalr t2 ++ jal "_force" ++ move a1 v0 ++
+  pop v0 ++ pop t1 ++
   li a0 4 ++ sw a0 areg(0, v0) ++ sw a1 areg(4, v0) ++
   pop ra ++
   jr ra
