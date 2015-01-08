@@ -174,15 +174,15 @@ let compile_program p primitives =
       move fp sp ++
       (* Création des fermetures des primitives *)
       List.fold_left (fun code prim ->
-        lw t0 alab prim.name ++
+        la t0 alab prim.name ++
         la t1 alab ("_prim_" ^ prim.name) ++
         li a0 8 ++
         li v0 9 ++
         syscall ++
         li a0 2 ++
         sw a0 areg(0, v0) ++
-        sw t0 areg(4, v0) ++
-        sw v0 areg(0, t1) ++
+        sw t1 areg(4, v0) ++
+        sw v0 areg(0, t0) ++
         code ) nop primitives ++
       code ++
       li a0 0 ++
