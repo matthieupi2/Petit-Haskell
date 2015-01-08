@@ -24,7 +24,7 @@ let getNames =
   let rec aux = function
     | [] -> []
     | t::q -> t.name::(aux q) in
-  UncurriedAst.S.of_list (aux primitives)
+  aux primitives
 
 (* Utilisée par TypedAst comme environnement de base *)
 let getEnv =

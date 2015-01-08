@@ -276,8 +276,7 @@ let print_closure_ast =
       printf "{" ; List.iter (fun e -> printf "\n" ; print_expr e) l ;
       printf "\n}"
     | Freturn -> printf " ()" ;
-    | Fglacon (x, fvars) -> printf " G%s<" x ;
-      List.iter (fun x -> printf "%s," x) fvars ; printf ">"
+    | Fglacon e -> printf " §" ; print_expr e ; printf "§"
   and print_def (s, e) = printf "%s=\n" s ; print_expr e
   and print_decl = function
     | Fdef (s, e) -> print_def (s, e)
@@ -295,7 +294,9 @@ let print_closure_ast =
 let print_allocated_ast =
   let print_var = function
     | Vglobale s -> printf "%s" s
-    | Vlocale i -> printf "$%d" i in
+    | Vlocale i -> printf "$%d" i
+    | Vclos i -> printf "€%d" i
+    | Varg -> printf "#" in
   let rec print_expr = function
     | CVar v -> printf " " ; print_var v
     | CCst c -> printf " %d" c
@@ -318,14 +319,11 @@ let print_allocated_ast =
       printf "{" ; List.iter (fun e -> printf "\n" ; print_expr e) l ;
       printf "\n}"
     | CReturn -> printf " ()" ;
-    | CGlacon (x, fvars) -> printf " Gclos<" ;
-      List.iter (fun v -> print_var v ; printf ",") fvars ; printf "> %s" x
+    | CGlacon e -> printf " §" ; print_expr e ; printf "§"
   and print_def (i, e) = printf "$%d=\n" i ; print_expr e
   and print_decl = function
     | CDef (s, e, n) -> printf "%s[%d]=\n" s n ; print_expr e
-    | CFun (s, nclot, e, n) -> printf "%s[%d]<%d> _ ->" s n nclot ; print_expr e
-    | CCodeglacon (s, nclot, e, n) -> printf "G%s[%d]<%d> _ ->" s n nclot ;
-      print_expr e
+    | CFun (s, e, n) -> printf "%s[%d] _ ->" s n ; print_expr e
     | CMain (e, n) -> printf "main[%d]=\n" n ; print_expr e in
   let rec print_file = function
     | [] -> ()
@@ -350,7 +348,7 @@ let () =
           print_ast ast ;
         if !opt_parse_only then
           exit 0 ;
-        let uncurried_ast = uncurry_list_def ast (Primitives.getNames) in
+        let uncurried_ast = uncurry_list_def ast Primitives.getNames in
         if !opt_print_uncurried_ast then
           print_uncurried_ast uncurried_ast ;
         if !opt_uncurry_only then
@@ -366,7 +364,7 @@ let () =
         let closure_ast = ferm free_vars_ast in
         if !opt_print_closure_ast then
           print_closure_ast closure_ast ;
-        let allocated_ast = alloc closure_ast in
+        let allocated_ast = alloc closure_ast Primitives.getNames in
         if !opt_print_allocated_ast then
           print_allocated_ast allocated_ast ;
         raise (CompilerError "compilateur inexistant")

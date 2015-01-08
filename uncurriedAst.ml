@@ -64,7 +64,7 @@ and uncurry_expr e =
     | Ebinop (o, e1, e2) -> Ubinop (o, uncurry_expr e1, uncurry_expr e2)
     | Eif (cdt, e1, e2) ->
         Uif (uncurry_expr cdt, uncurry_expr e1, uncurry_expr e2)
-    | Elet (defs, e) -> Ulet (uncurry_list_def defs S.empty, uncurry_expr e)
+    | Elet (defs, e) -> Ulet (uncurry_list_def defs [], uncurry_expr e)
     | Ecase (_,_, hd, tl,_) when hd.ident = tl.ident ->
         raise (IdentError (tl.ident, tl.loci, RedefCase hd.loci))
     | Ecase (e0, e1, hd, tl, e2) -> Ucase (uncurry_expr e0, uncurry_expr e1,
@@ -75,6 +75,7 @@ and uncurry_expr e =
 
 (* Vérifie que les variables définies ont des identifiants différents *)
 and uncurry_list_def ast primitives =
+  let primitives = S.of_list primitives in
   let rec aux env = function
     | []  -> []
     | ({ident=name; loci=loc},_,_)::q when S.mem name primitives ->
