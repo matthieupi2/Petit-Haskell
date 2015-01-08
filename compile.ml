@@ -182,7 +182,8 @@ let compile_program p primitives =
         li a0 2 ++
         sw a0 areg(0, v0) ++
         sw t0 areg(4, v0) ++
-        sw v0 areg(0, t1)) nop primitives ++
+        sw v0 areg(0, t1) ++
+        code ) nop primitives ++
       code ++
       li a0 0 ++
       li v0 17 ++ (* exit 0 *)
