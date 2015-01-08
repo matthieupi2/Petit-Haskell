@@ -11,25 +11,32 @@ type primitive = { name : string; typ : typ; generalized : bool;
 (* TODO compléter les body *)
 (* TODO ajouter ces fermetures dans le tas pour rester coherent avec *)
 let primitives = [
-  { name = "div"; typ = Tarrow (Tint, Tarrow (Tint, Tint)); generalized = false;
-    body = nop
+  { name = "div";
+    typ = Tarrow (Tint, Tarrow (Tint, Tint));
+    generalized = false;
+    body = nop;
 (* _div : [a] x -> x/a
    div : y -> _div [y] *)
-					; pdata = nop} ;
-  { name = "rem"; typ = Tarrow (Tint, Tarrow (Tint, Tint)); generalized = false;
+	 pdata = nop} ;
+  { name = "rem";
+    typ = Tarrow (Tint, Tarrow (Tint, Tint));
+    generalized = false;
     body = nop ; pdata = nop } ;
-  { name = "putChar"; typ = Tarrow (Tchar, Tio); generalized = false; 
-    body = move v0 t0 ++ push ra ++ jal "_force" ++ pop ra ++ lw a0 areg(4, v0) ++
-           li v0 11 ++ syscall ++ jr ra
-					; pdata = nop } ;
-  { name = "error"; typ = Tarrow (Tlist Tchar, Tvar (V.create ()));
+  { name = "putChar";
+    typ = Tarrow (Tchar, Tio); generalized = false; 
+    body = move v0 t0 ++ push ra ++ jal "_force" ++ pop ra ++
+      lw a0 areg(4, v0) ++ li v0 11 ++ syscall ++ jr ra;
+		pdata = nop } ;
+  { name = "error";
+    typ = Tarrow (Tlist Tchar, Tvar (V.create ()));
     generalized = true;
-    body = la a0 alab "_error_text" ++ li v0 4 ++ syscall ++
-    move v0 t0 ++ push ra ++ jal "_force" ++ pop ra ++ label "_error_1" ++
-    lw a0 areg(0, v0) ++ beq a0 zero "_error_2" ++
-    lw a0 areg(8, v0) ++ push a0 ++ lw v0 areg(4, v0) ++ push ra ++ jal "_force" ++ pop ra ++
-    move t0 v0 ++ push ra ++ jal "putChar" ++ pop ra ++ pop v0 ++
-    beq zero zero "_error_1" ++ label "_error_2" ++ li a0 1 ++ li v0 17 ++ syscall
+    body = la a0 alab "_error_text" ++ li v0 4 ++ syscall ++ move v0 t0 ++
+      label "_error_1" ++ jal "_force" ++ lw a0 areg(0, v0) ++
+      beq a0 zero "_error_2" ++ lw a0 areg(8, v0) ++ push a0 ++
+      lw v0 areg(4, v0) ++ jal "_force" ++ move a0 v0 ++ li v0 11 ++
+      syscall ++ pop v0 ++ b "_error_1" ++ label "_error_2" ++
+      la a0 alab "_newline" ++ li v0 4 ++ syscall ++ li a0 1 ++ li v0 17 ++
+      syscall
     ; pdata = label "_error_text" ++ asciiz "error : " } ]
 
 (* Utilisée par UncurriedAst pour vérifier la non redéfinition *)

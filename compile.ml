@@ -194,7 +194,7 @@ let compile_program p primitives =
         prim.body ) nop primitives ++
       force;
     data =
-      label "newline" ++ asciiz "\n" ++
+      label "_newline" ++ asciiz "\n" ++
       List.fold_left (fun data lbl -> label lbl ++ dword [0] ++ data)
           nop data ++
       List.fold_left (fun code prim -> code ++ label prim.name ++ dword [0])
