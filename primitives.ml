@@ -6,18 +6,18 @@ open TypedAst
 open Mips
 
 type primitive = { name : string; typ : typ; generalized : bool;
-    body : Mips.text;  data : Mips.data } 
+    body : Mips.text; pdata : Mips.data } 
 
 (* TODO compléter les body *)
 let primitives = [
   { name = "div"; typ = Tarrow (Tint, Tarrow (Tint, Tint)); generalized = false;
-    body = nop ; data = nop} ;
+    body = nop ; pdata = nop} ;
   { name = "rem"; typ = Tarrow (Tint, Tarrow (Tint, Tint)); generalized = false;
-    body = nop ; data = nop } ;
+    body = nop ; pdata = nop } ;
   { name = "putChar"; typ = Tarrow (Tchar, Tio); generalized = false;
-    body = nop ; data = nop } ;
+    body = nop ; pdata = nop } ;
   { name = "error"; typ = Tarrow (Tlist Tchar, Tvar (V.create ()));
-    generalized = true; body = nop; data = nop } ]
+    generalized = true; body = nop; pdata = nop } ]
 
 (* Utilisée par UncurriedAst pour vérifier la non redéfinition *)
 let getNames =

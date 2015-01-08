@@ -1,5 +1,10 @@
 (* phase 4 : production de code *)
 
+open Primitives
+open Error
+open Mips
+open AllocatedAst
+
 let numlbl = ref 0
 
 let pushn n = sub sp sp oi n
@@ -108,11 +113,12 @@ let rec compile_expr = function
                       li a0 2 ++ sw a0 areg(0, v0) ++ la a0 alab f ++ sw a0 areg(4, v0) ++
                       push a2 ++ c ++
                       pop a0
+*)
 
 
-
-let compile_def (codefun, codemain) = function
-  | CDef (x, e, fpmax) ->
+let compile_decl = function
+  | _ -> assert false
+  (* | CDef (x, e, fpmax) ->
       let code = compile_expr e in
       let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
       let code =
@@ -185,29 +191,30 @@ let force =
   pop ra ++
   jr ra
   
-let compile_program p ofile primitives =
-  let p = var_libre p in
-  let p = ferm p in
-  let p = alloc p in
-  let codefun, code = List.fold_left compile_def (nop, nop) p in
-  let p =
-    { text =
-        label "main" ++
-        move fp sp ++
-        code ++
-        li v0 10 ++ (* exit *)
-        syscall ++
-        codefun ++
-        List.map (fun prim -> label prim.name ++ prim.body) primitives ++
-        label "_force" ++
-        force
-      data =
-        label "newline" ++ asciiz "\n" ++
-        List.map (fun prim -> prim.data) primitives
-    }
-  in
+let compile_program p primitives =
+  let rec aux = function
+    | [] -> (nop, nop)
+    | (CMain _ as t)::q -> (fst (aux q), compile_decl t)
+    | t::q -> let codefun, code = aux q in
+      ((compile_decl t) ++ codefun, code) in
+  let codefun, code = aux p in
+  { text =
+      label "main" ++
+      move fp sp ++
+      code ++
+      li v0 10 ++ (* exit *)
+      syscall ++
+      codefun ++
+      List.fold_left (fun code prim -> code ++ label prim.name ++ prim.body)
+          nop primitives ++
+      label "_force" ++ force;
+    data =
+      label "newline" ++ asciiz "\n" ++
+      List.fold_left (fun data prim -> data ++ prim.pdata) nop primitives
+  }
+  (*
   let f = open_out ofile in
   let fmt = formatter_of_out_channel f in
   Mips.print_program fmt p;
-  fprintf fmt "@?";
-  close_out f
+  fprintf fmt "@?"; 
+  close_out f *)
