@@ -9,7 +9,7 @@ type primitive = { name : string; typ : typ; generalized : bool;
     body : Mips.text; pdata : Mips.data } 
 
 (* TODO compléter les body *)
-(* ajouter ces fermetures dans le tas pour rester coherent avec *)
+(* TODO ajouter ces fermetures dans le tas pour rester coherent avec *)
 let primitives = [
   { name = "div"; typ = Tarrow (Tint, Tarrow (Tint, Tint)); generalized = false;
     body = nop

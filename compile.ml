@@ -172,18 +172,26 @@ let compile_program p primitives =
   { text =
       label "main" ++
       move fp sp ++
+      List.fold_left (fun code prim ->
+        lw v0 alab prim.name ++
+        la a0 alab ("_prim_" ^ prim.name) ++
+        sw a0 areg(4, v0)) nop primitives ++
       code ++
       li a0 0 ++
       li v0 17 ++ (* exit *)
       syscall ++
       codefun ++
-      List.fold_left (fun code prim -> code ++ label prim.name ++ prim.body)
+      List.fold_left
+          (fun code prim -> code ++ (label ("_prim_" ^ prim.name)) ++ prim.body)
           nop primitives ++
       force;
     data =
       label "newline" ++ asciiz "\n" ++
       List.fold_left (fun data prim -> data ++ prim.pdata) nop primitives ++
-      List.fold_left (fun data lbl -> label lbl ++ dword [1] ++ data) nop data
+      List.fold_left (fun data lbl -> label lbl ++ dword [0] ++ data)
+          nop data ++
+      List.fold_left (fun code prim -> code ++ label prim.name ++ dword [2 ; 0])
+          nop primitives
   }
   (*
   let f = open_out ofile in
