@@ -371,7 +371,8 @@ let () =
         let allocated_ast = alloc closure_ast Primitives.getNames in
         if !opt_print_allocated_ast then
           print_allocated_ast allocated_ast ;
-        raise (CompilerError "compilateur inexistant")
+        Compile.compile_program allocated_ast Primitives.primitives ofile
+        (*raise (CompilerError "compilateur inexistant")*)
       with e -> Error.error file e
     with e -> Error.error_before_parsing file lb e ;
   with e -> eprintf "Anomaly: %s\n@." (Printexc.to_string e) ;
