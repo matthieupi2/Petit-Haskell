@@ -124,7 +124,7 @@ let compile_decl = function
   | CDef (x, e, fpmax) ->
     let code = compile_expr e in
     let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
-    pre ++ code ++ post ++ sw v0 alab x (* TODO! il est ou label x ? *)
+    pre ++ code ++ post ++ sw v0 alab x
   | CFun (f, e, fpmax) ->
     let code = compile_expr e in
     let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
@@ -174,7 +174,8 @@ let compile_program p primitives =
       label "main" ++
       move fp sp ++
       code ++
-      li v0 10 ++ (* exit *)
+      li a0 0 ++
+      li v0 17 ++ (* exit *)
       syscall ++
       codefun ++
       List.fold_left (fun code prim -> code ++ label prim.name ++ prim.body)
