@@ -1,5 +1,4 @@
-
-CMO = error.cmo lexer.cmo parser.cmo uncurriedAst.cmo typedAst.cmo mips.cmo primitives.ml compile.cmo main.cmo
+CMO = mips.cmo error.cmo lexer.cmo parser.cmo uncurriedAst.cmo typedAst.cmo freeVarsAst.cmo closureAst.cmo allocatedAst.cmo primitives.cmo main.cmo
 GENERATED = lexer.ml parser.ml parser.mli
 
 all: petitghc

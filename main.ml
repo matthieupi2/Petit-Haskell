@@ -9,6 +9,9 @@ open Parser
 open Ast
 open UncurriedAst
 open TypedAst
+open FreeVarsAst
+open ClosureAst
+open AllocatedAst
 open Error
 
 (* Définition des options proposées pour l'exécution *)
@@ -22,6 +25,9 @@ let opt_print_tokens = ref false
 let opt_print_ast = ref false
 let opt_print_uncurried_ast = ref false
 let opt_print_typed_ast = ref false
+let opt_print_free_vars_ast = ref false
+let opt_print_closure_ast = ref false
+let opt_print_allocated_ast = ref false
 
 (* TODO angliciser *)
 let spec = [
@@ -34,7 +40,13 @@ let spec = [
   "--print-uncurried-ast", Arg.Set opt_print_uncurried_ast,
       " affiche le résultat de la décurrification" ;
   "--print-typed-ast", Arg.Set opt_print_typed_ast,
-      "affiche le résultat du typage"]
+      "affiche le résultat du typage" ;
+  "--print-free-vars-ast", Arg.Set opt_print_free_vars_ast, " affiche le
+      résultat de var_libre" ;
+  "--print-closure-ast", Arg.Set opt_print_closure_ast, "affiche le résultat de
+      la création des fermetures et des glaçons" ;
+  "--print-allocated-ast", Arg.Set opt_print_allocated_ast,
+      "affiche le résultat de l'allocation de variables"]
 
 (* Ouverture du fichier à compiler *)
 let file =
@@ -202,6 +214,128 @@ let print_typed_ast =
     | def0::q -> print_def def0 ; printf "\n@." ; print_file q in
   print_file
 
+let print_free_vars_ast =
+  let print_cte = function
+    | Cint i -> print_int i
+    | Cchar c -> printf "'%s'" (Char.escaped c)
+    | Cbool true -> printf "True"
+    | Cbool false -> printf "False" in
+  let rec print_expr e = ( match e.vexpr with 
+      | Vident s -> printf " %s" s
+      | Vcst c -> printf " " ; print_cte c
+      | Vemptylist -> printf " []"
+      | Vappli (f, arg) -> printf " (" ; print_expr f ; printf "(" ;
+        print_expr arg ; printf " ))"
+      | Vlambda (arg, e) -> printf " (\\" ;
+        printf " %s" arg ; printf " ->" ; print_expr e ;
+        printf ")"
+      | Vbinop (o, e0, e1) -> printf " (%s" (Hashtbl.find ops o) ;
+      print_expr e0 ; print_expr e1 ; printf ")"
+      | Vif (cdt, e1, e2) -> printf " (if " ; print_expr cdt ; printf " then " ;
+        print_expr e1 ; printf " else " ; print_expr e2 ; printf ")"
+      | Vlet (ld, e) -> printf "(let " ;
+        List.iter (fun d -> print_def d ; printf "\n") ld ; printf "in" ;
+        print_expr e ; printf ")"
+      | Vcase (e, e0, hd, tl, e1) -> printf "case " ; print_expr e ;
+        printf " of\n | [] -> " ; print_expr e0 ; printf "\n | %s:%s -> " hd tl ;
+        print_expr e1 ; printf "\n"
+      | Vdo l ->
+          printf "{" ; List.iter (fun e -> printf "\n" ; print_expr e) l ;
+        printf "\n}"
+      | Vreturn -> printf " ()" ) ;
+    printf "<" ;
+    List.iter (fun x -> printf "%s," x) e.var_libres ;
+    printf ">"
+  and print_def (s, e) = printf "%s=\n" s ; print_expr e in
+  let rec print_file = function
+    | [] -> ()
+    | def0::q -> print_def def0 ; printf "\n@." ; print_file q in
+  print_file
+
+let print_closure_ast =
+  let print_cte = function
+    | Cint i -> print_int i
+    | Cchar c -> printf "'%s'" (Char.escaped c)
+    | Cbool true -> printf "True"
+    | Cbool false -> printf "False" in
+  let rec print_expr = function
+    | Fident s -> printf " %s" s
+    | Fcst c -> printf " " ; print_cte c
+    | Femptylist -> printf " []"
+    | Fappli (f, arg) -> printf " (" ; print_expr f ; printf "(" ;
+      print_expr arg ; printf " ))"
+    | Fclos (f, fvars) -> printf " clos<" ;
+      List.iter (fun x -> printf "%s," x) fvars ; printf "> %s" f
+    | Fbinop (o, e0, e1) -> printf " (%s" (Hashtbl.find ops o) ;
+      print_expr e0 ; print_expr e1 ; printf ")"
+    | Fif (cdt, e1, e2) -> printf " (if " ; print_expr cdt ; printf " then " ;
+      print_expr e1 ; printf " else " ; print_expr e2 ; printf ")"
+    | Flet (ld, e) -> printf "(let " ;
+      List.iter (fun d -> print_def d ; printf "\n") ld ; printf "in" ;
+      print_expr e ; printf ")"
+    | Fcase (e, e0, hd, tl, e1) -> printf "case " ; print_expr e ;
+      printf " of\n | [] -> " ; print_expr e0 ; printf "\n | %s:%s -> " hd tl ;
+      print_expr e1 ; printf "\n"
+    | Fdo l ->
+      printf "{" ; List.iter (fun e -> printf "\n" ; print_expr e) l ;
+      printf "\n}"
+    | Freturn -> printf " ()" ;
+    | Fglacon (x, fvars) -> printf " G%s<" x ;
+      List.iter (fun x -> printf "%s," x) fvars ; printf ">"
+  and print_def (s, e) = printf "%s=\n" s ; print_expr e
+  and print_decl = function
+    | Fdef (s, e) -> print_def (s, e)
+    | Ffun (s, clot, arg, e) -> printf "%s<" s ;
+      List.iter (fun x -> printf "%s," x) clot ; printf "> %s ->" arg ;
+      print_expr e
+    | Fcodeglacon (s, clot, e) -> printf "G%s<" s ;
+      List.iter (fun x -> printf "%s," x) clot ; printf "> _ ->" ; print_expr e
+    | Fmain e -> print_def ("main", e) in
+  let rec print_file = function
+    | [] -> ()
+    | decl0::q -> print_decl decl0 ; printf "\n@." ; print_file q in
+  print_file
+
+let print_allocated_ast =
+  let print_var = function
+    | Vglobale s -> printf "%s" s
+    | Vlocale i -> printf "$%d" i in
+  let rec print_expr = function
+    | CVar v -> printf " " ; print_var v
+    | CCst c -> printf " %d" c
+    | CEmptylist -> printf " []"
+    | CAppli (f, arg) -> printf " (" ; print_expr f ; printf "(" ;
+      print_expr arg ; printf " ))"
+    | CClos (f, fvars) -> printf " clos<" ;
+      List.iter (fun v -> print_var v ; printf ",") fvars ; printf "> %s" f
+    | CBinop (o, e0, e1) -> printf " (%s" (Hashtbl.find ops o) ;
+      print_expr e0 ; print_expr e1 ; printf ")"
+    | CIf (cdt, e1, e2) -> printf " (if " ; print_expr cdt ; printf " then " ;
+      print_expr e1 ; printf " else " ; print_expr e2 ; printf ")"
+    | CLet (ld, e) -> printf "(let " ;
+      List.iter (fun d -> print_def d ; printf "\n") ld ; printf "in" ;
+      print_expr e ; printf ")"
+    | CCase (e, e0, hd, tl, e1) -> printf "case " ; print_expr e ;
+      printf " of\n | [] -> " ; print_expr e0 ;
+      printf "\n | $%d:$%d -> " hd tl ; print_expr e1 ; printf "\n"
+    | CDo l ->
+      printf "{" ; List.iter (fun e -> printf "\n" ; print_expr e) l ;
+      printf "\n}"
+    | CReturn -> printf " ()" ;
+    | CGlacon (x, fvars) -> printf " Gclos<" ;
+      List.iter (fun v -> print_var v ; printf ",") fvars ; printf "> %s" x
+  and print_def (i, e) = printf "$%d=\n" i ; print_expr e
+  and print_decl = function
+    | CDef (s, e, n) -> printf "%s[%d]=\n" s n ; print_expr e
+    | CFun (s, nclot, e, n) -> printf "%s[%d]<%d> _ ->" s n nclot ; print_expr e
+    | CCodeglacon (s, nclot, e, n) -> printf "G%s[%d]<%d> _ ->" s n nclot ;
+      print_expr e
+    | CMain (e, n) -> printf "main[%d]=\n" n ; print_expr e in
+  let rec print_file = function
+    | [] -> ()
+    | decl0::q -> print_decl decl0 ; printf "\n@." ; print_file q in
+  print_file
+
 (* Fonction principale *)
 (* Il y a plusieurs niveaux d'erreurs car l'impression de celles-ci nécessite des
  * données créées durant la compilation *)
@@ -230,13 +364,16 @@ let () =
           print_typed_ast typed_ast ;
         if !opt_type_only then
           exit 0 ;
-        try
-           Compile.compile_program typed_ast ofile
-        with
-           | Compile.VarUndef s -> eprintf
-	           "Erreur de compilation: la variable %s n'est pas definie@." s;
-	           exit 1
-        (*raise (CompilerError "compilateur inexistant")*)
+        let free_vars_ast = var_libre typed_ast in
+        if !opt_print_free_vars_ast then
+          print_free_vars_ast free_vars_ast ;
+        let closure_ast = ferm free_vars_ast in
+        if !opt_print_closure_ast then
+          print_closure_ast closure_ast ;
+        let allocated_ast = alloc closure_ast in
+        if !opt_print_allocated_ast then
+          print_allocated_ast allocated_ast ;
+        raise (CompilerError "compilateur inexistant")
       with e -> Error.error file e
     with e -> Error.error_before_parsing file lb e ;
   with e -> eprintf "Anomaly: %s\n@." (Printexc.to_string e) ;
