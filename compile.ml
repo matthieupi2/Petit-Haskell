@@ -101,10 +101,10 @@ let rec compile_expr l =
     | CLet (l, e) ->
       let rec aux = function
         | (i1, CGlacon e1)::q -> let code = compile_expr e1 in
-                                 li a0 8 ++ li v0 9 ++ syscall ++
-                                 li a0 3 ++ sw a0 areg(0, v0) ++ sw v0 areg (i1, fp) ++
-			         aux q ++ code ++ lw a0 areg(i1, fp) ++ sw v0 areg(4, a0)
-	| [] -> nop
+          li a0 8 ++ li v0 9 ++ syscall ++
+          li a0 3 ++ sw a0 areg(0, v0) ++ sw v0 areg (i1, fp) ++
+			    aux q ++ code ++ lw a0 areg(i1, fp) ++ sw v0 areg(4, a0)
+	      | [] -> nop
         | _ -> raise (CompilerError "during production of code of CLet") in
       comment "CLet" ++ aux l ++ compile_expr e
     | CCase (e1, e2, adr1, adr2, e3) ->

@@ -47,6 +47,17 @@ let rec ferm_expr = function
     let s = ("_fun_" ^ (string_of_int (!numfun))) in
     let f1, f2 = ferm_expr vv in
     Fclos (s, l), Ffun (s, l, i, f1)::f2
+  | {vexpr = Vbinop (Bcol, v1, v2)} ->
+    incr numglacon ;
+    let s1 = "_glacon_" ^ (string_of_int !numglacon) in
+    incr numglacon ;
+    let s2 = "_glacon_" ^ (string_of_int !numglacon) in
+    let f1d, f1f = ferm_expr v1 in
+    let f2d, f2f = ferm_expr v2 in
+    Fbinop (Bcol,
+      Fglacon (Fclos (s1, v1.var_libres)), Fglacon (Fclos (s2, v2.var_libres))),
+      (Fcodeglacon (s1, v1.var_libres, f1d))::
+      (Fcodeglacon (s2, v2.var_libres, f2d))::f1f@f2f
   | {vexpr = Vbinop (o, v1, v2)} -> 
     let f1d, f1f = ferm_expr v1 in
     let f2d, f2f = ferm_expr v2 in
