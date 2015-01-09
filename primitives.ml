@@ -20,18 +20,15 @@ let primitives = [
     la a1 alab "_div_1" ++ sw a1 areg(4, v0) ++ sw t0 areg(8, v0) ++
     pop ra ++ pop fp ++ jr ra ++
 
-    label "_div_1" ++ push fp ++ push ra ++ move fp sp ++
-    move v0 t0 ++ push ra ++ jal "_force" ++ pop ra ++
-    push v0 ++ lw v0 areg(8, t1) ++ push ra ++ jal "_force" ++ pop ra ++ pop a0 ++
-    lw a0 areg(4, a0) ++ lw a1 areg(4, v0) ++
-    bne a1 zero "_div_pas_par_0" ++ li v0 17 ++ li a0 1 ++ syscall ++ label "_div_pas_par_0" ++
-    div a2 a0 oreg a1 ++ (* TODO 1 chance sur 2 pour que ce soit l'inverse*)
-    li a0 8 ++ li v0 9 ++ syscall ++
-    sw zero areg(0, v0) ++ sw a2 areg(4, v0) ++
-    pop ra ++ pop fp ++ jr ra
-(* _div : [a] x -> x/a
-   div : y -> _div [y] *)
-	; pdata = nop} ;
+    label "_div_1" ++ push fp ++ push ra ++ push t1 ++ move fp sp ++
+    move v0 t0 ++ jal "_force" ++ pop t1 ++ push v0 ++
+    lw v0 areg(8, t1) ++ jal "_force" ++ pop a1 ++
+    lw a1 areg(4, a1) ++ lw a0 areg(4, v0) ++
+    bne a1 zero "_div_pas_par_0" ++ la a0 alab "_error_div_by_0" ++ li v0 4 ++
+    syscall ++ li v0 17 ++ li a0 1 ++ syscall ++ label "_div_pas_par_0" ++
+    div a2 a0 oreg a1 ++ li a0 8 ++ li v0 9 ++ syscall ++
+    sw zero areg(0, v0) ++ sw a2 areg(4, v0) ++ pop ra ++ pop fp ++ jr ra
+	; pdata = label "_error_div_by_0" ++ asciiz "error: divide by 0" } ;
   { name = "rem";
     typ = Tarrow (Tint, Tarrow (Tint, Tint));
     generalized = false;
@@ -41,16 +38,15 @@ let primitives = [
     la a1 alab "_rem_1" ++ sw a1 areg(4, v0) ++ sw t0 areg(8, v0) ++
     pop ra ++ pop fp ++ jr ra ++
 
-    label "_rem_1" ++ push fp ++ push ra ++ move fp sp ++
-    move v0 t0 ++ push ra ++ jal "_force" ++ pop ra ++
-    push v0 ++ lw v0 areg(8, t1) ++ push ra ++ jal "_force" ++ pop ra ++ pop a0 ++
-    lw a0 areg(4, a0) ++ lw a1 areg(4, v0) ++
-    bne a1 zero "_rem_pas_par_0" ++ li v0 17 ++ li a0 1 ++ syscall ++ label "_rem_pas_par_0" ++
-    rem a2 a0 oreg a1 ++ (* TODO 1 chance sur 2 pour que ce soit l'inverse*)
-    li a0 8 ++ li v0 9 ++ syscall ++
-    sw zero areg(0, v0) ++ sw a2 areg(4, v0) ++
-    pop ra ++ pop fp ++ jr ra
-	 ; pdata = nop } ;
+    label "_rem_1" ++ push fp ++ push ra ++ push t1 ++ move fp sp ++
+    move v0 t0 ++ jal "_force" ++ pop t1 ++ push v0 ++
+    lw v0 areg(8, t1) ++ jal "_force" ++ pop a1 ++
+    lw a1 areg(4, a1) ++ lw a0 areg(4, v0) ++
+    bne a1 zero "_rem_pas_par_0" ++ la a0 alab "_error_rem_by_0" ++ li v0 4 ++
+    syscall ++ li v0 17 ++ li a0 1 ++ syscall ++ label "_rem_pas_par_0" ++
+    rem a2 a0 oreg a1 ++ li a0 8 ++ li v0 9 ++ syscall ++
+    sw zero areg(0, v0) ++ sw a2 areg(4, v0) ++ pop ra ++ pop fp ++ jr ra
+	 ; pdata = label "_error_rem_by_0" ++ asciiz "error: divide by 0" } ;
   { name = "putChar";
     typ = Tarrow (Tchar, Tio); generalized = false; 
     body = move v0 t0 ++ push ra ++ jal "_force" ++ pop ra ++
@@ -66,7 +62,7 @@ let primitives = [
       syscall ++ pop v0 ++ b "_error_1" ++ label "_error_2" ++
       la a0 alab "_newline" ++ li v0 4 ++ syscall ++ li a0 1 ++ li v0 17 ++
       syscall
-    ; pdata = label "_error_text" ++ asciiz "error : " } ]
+    ; pdata = label "_error_text" ++ asciiz "error: " } ]
 
 (* Utilisée par UncurriedAst pour vérifier la non redéfinition *)
 let getNames =
