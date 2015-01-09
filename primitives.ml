@@ -55,12 +55,15 @@ let primitives = [
   { name = "error";
     typ = Tarrow (Tlist Tchar, Tvar (V.create ()));
     generalized = true;
-    body = move v0 t0 ++ jal "_force" ++ move t0 v0 ++
-      la a0 alab "_error_text" ++ li v0 4 ++ syscall ++ move v0 t0 ++
-      jal "_force" ++ label "_error_1" ++ lw a0 areg(0, v0) ++
-      beq a0 zero "_error_2" ++ lw a0 areg(8, v0) ++ push a0 ++
+    body = push t0 ++ move v0 t0 ++ label "_error_1" ++ jal "_force" ++
+      lw a0 areg(0, v0) ++ beq a0 zero "_error_2" ++ lw a0 areg(8, v0) ++
+      push a0 ++ lw v0 areg(4, v0) ++ jal "_force" ++
+      pop v0 ++ b "_error_1" ++ label "_error_2" ++
+      la a0 alab "_error_text" ++ li v0 4 ++ syscall ++ pop v0 ++
+      label "_error_3" ++ jal "_force" ++ lw a0 areg(0, v0) ++
+      beq a0 zero "_error_4" ++ lw a0 areg(8, v0) ++ push a0 ++
       lw v0 areg(4, v0) ++ jal "_force" ++ lw a0 areg(4, v0) ++ li v0 11 ++
-      syscall ++ pop v0 ++ jal "_force" ++ b "_error_1" ++ label "_error_2" ++
+      syscall ++ pop v0 ++ b "_error_3" ++ label "_error_4" ++
       la a0 alab "_newline" ++ li v0 4 ++ syscall ++ li a0 1 ++ li v0 17 ++
       syscall
     ; pdata = label "_error_text" ++ asciiz "error: " } ]
