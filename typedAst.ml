@@ -31,13 +31,12 @@ type tdef = ident * ttexpr
 
 and ttexpr = { texpr : texpr; typ : typ }
 
-(* TODO décurrifier *)
 and texpr =
   | Tident of ident
   | Tcst of constant
   | Tlist of ttexpr list
-  | Tappli of ttexpr * ttexpr             (*Tcall ttexpr -> ttexpr*)
-  | Tlambda of ident list * ttexpr        (*                      *)
+  | Tappli of ttexpr * ttexpr
+  | Tlambda of ident list * ttexpr
   | Tbinop of binop * ttexpr * ttexpr
   | Tif of ttexpr * ttexpr * ttexpr
   | Tlet of tdef list * ttexpr
@@ -50,12 +49,6 @@ and texpr =
 (* Supprime les variables en tête dont on a trouvé le type *)
 let rec head = function
   | Tvar { def = Some t } -> head t
-  | t -> t
-
-(* TODO Inutile ? *)
-let rec canon t = match head t with
-  | Tarrow (t1, t2) -> Tarrow (canon t1, canon t2)
-  | Tlist t -> Tlist (canon t)
   | t -> t
 
 (* Gestion des erreurs
@@ -232,7 +225,7 @@ and w env e = match e.uexpr with
       unify te1.typ (Tarrow (te2.typ, v)) ;
       { texpr = Tappli (te1, te2) ; typ = v }
     with UnificationFailure e -> match head te1.typ with
-      | Tarrow (t, _) -> type_error ue2.locu te2.typ t e (* TODO à vérifier *)
+      | Tarrow (t, _) -> type_error ue2.locu te2.typ t e
       | _ -> type_error ue1.locu te1.typ (Tarrow (te2.typ, v)) NotAFunction )
   | Ulambda (args, body) -> let rec aux env = function
       | [] -> let tbody = w env body in
@@ -284,7 +277,7 @@ and w env e = match e.uexpr with
         unify te1.typ te2.typ ;
         { texpr = Tcase (te0, te1, hd, tl, te2); typ = te1.typ }
       with UnificationFailure e -> type_error ue2.locu te2.typ te1.typ e
-    with UnificationFailure e -> (* TODO NotAList *)
+    with UnificationFailure e ->
         type_error ue0.locu te0.typ (Tlist v) e )
   | Udo lue -> let aux ue =
       let te = w env ue in 

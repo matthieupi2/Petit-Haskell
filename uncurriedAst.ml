@@ -7,17 +7,15 @@ open Ast
 
 (* Structure de l'ast *)
 
-(* TODO localiser les initialisations ? *)
 type udef = ident * luexpr
 
-(* TODO desc *)
 and luexpr = {uexpr : uexpr; locu : Error.location}
 
 and uexpr =
   | Uident of ident
   | Ucst of constant
   | Ulist of luexpr list
-  | Uappli of luexpr * luexpr (* TODO localiser ? *)
+  | Uappli of luexpr * luexpr
   | Ulambda of ident list * luexpr
   | Ubinop of binop * luexpr * luexpr
   | Uif of luexpr * luexpr * luexpr

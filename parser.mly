@@ -30,8 +30,7 @@
 
 %start file
 
-(* TODO créer type file *)
-%type <Ast.def list> file
+%type <Ast.file> file
 
 %%
 

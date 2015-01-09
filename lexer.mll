@@ -48,7 +48,6 @@ rule next_tokens = parse
 
   | integer as s            { try
       CST (Cint (int_of_string s))
-  (* TODO Gérer les constantes trop grandes *)
     with _ -> raise (CompilerError ("constant too large: " ^ s)) }
   | '\''(car as s)'\''      { CST (Cchar (unescape s)) }
   | '"'                     { STRING (Elist (string lexbuf)) }

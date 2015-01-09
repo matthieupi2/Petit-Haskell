@@ -7,8 +7,6 @@
 (* Les lignes commençant par (**) sont utilisés pour le débogage et inutiles
  * pour le bon fonctionnement du compilateur. *)
 
-(* TODO Délocaliser les fonctions print_* *)
-
 open Format
 open Lexing
 open Parser
