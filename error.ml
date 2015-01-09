@@ -19,7 +19,6 @@ type typeError =
   | NotAFunction
   | FreeVar of string * string
 
-(* TODO IdentError location * string * identError *)
 exception LexerError of string
 exception ParserError of string
 exception IdentError of string * location * identError
@@ -33,10 +32,13 @@ let undef_loc = undef_pos, undef_pos
 
 (* Impression des erreurs *)
 
-(* TODO localisation bizarre (print_q q dans queue2.hs) -> à vérifier *)
 let print_loc file (b, e) =
   eprintf "File \"%s\", line %d, characters %d-%d:@." file b.pos_lnum
       (b.pos_cnum - b.pos_bol + 1) (e.pos_cnum - b.pos_bol + 1)
+
+let error_at_beginning e =
+  eprintf "Anomaly: %s\n@." (Printexc.to_string e) ;
+  exit 2
 
 let error_before_parsing file lb e =
   let print_loc () =
@@ -50,10 +52,10 @@ let error_before_parsing file lb e =
       exit 2
     | e -> raise e
 
-(* TODO revoir les messages d'erreurs *)
 let error file = function
   | IdentError (ident, loc, e) -> print_loc file loc ; ( match e with
-      | RedefPrimitive -> eprintf "%s is a primitive@." ident
+      | RedefPrimitive ->
+          eprintf "%s is already defined as a primitive@." ident
       | RedefVar loc ->
         eprintf "%s is already defined at@." ident ;
         print_loc file loc

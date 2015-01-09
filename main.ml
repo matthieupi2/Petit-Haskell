@@ -79,5 +79,4 @@ let () =
         write_code code_mips
       with e -> Error.error rfile e
     with e -> Error.error_before_parsing rfile lb e ;
-  with e -> eprintf "Anomaly: %s\n@." (Printexc.to_string e) ;
-    exit 2
+  with e -> Error.error_at_beginning e
