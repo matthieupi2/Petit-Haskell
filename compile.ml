@@ -99,11 +99,14 @@ let rec compile_expr l =
         code_e1 ++ push ra ++ jal "_force" ++ pop ra ++ lw a1 areg (4, v0) ++
         beq a1 zero s1 ++ code_e2 ++ b s2 ++ label s1 ++ code_e3 ++ label s2
     | CLet (l, e) ->
-      let aux (i1,e1) c =
-        let c1 = compile_expr e1 in
-        c1 ++ sw v0 areg (i1, fp) ++ c in
-      let code = List.fold_right aux l nop in
-      comment "CLet" ++ code ++ compile_expr e
+      let rec aux = function
+        | (i1, CGlacon e1)::q -> let code = compile_expr e1 in
+                                 li a0 8 ++ li v0 9 ++ syscall ++
+                                 li a0 3 ++ sw a0 areg(0, v0) ++ sw v0 areg (i1, fp) ++
+			         aux q ++ code ++ lw a0 areg(i1, fp) ++ sw v0 areg(4, a0)
+	| [] -> nop
+        | _ -> raise (CompilerError "during production of code of CLet") in
+      comment "CLet" ++ aux l ++ compile_expr e
     | CCase (e1, e2, adr1, adr2, e3) ->
       numlbl := !numlbl + 2;
       let s1 = ("_lbl_" ^ (string_of_int (!numlbl-1))) in
@@ -126,10 +129,11 @@ let rec compile_expr l =
   ++ comment ")"
 
 let compile_decl = function
-  | CDef (x, e, fpmax) -> comment ("CDef" ^ x) ++
+  | CDef (x, (CGlacon e), fpmax) -> comment ("CDef" ^ x) ++
     let code = compile_expr e in
     let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
-    pre ++ code ++ post ++ sw v0 alab x
+    pre ++ code ++ move a1 v0 ++ lw v0 alab x ++
+    li a0 3 ++ sw a0 areg(0, v0) ++ sw a1 areg(4, v0) ++ post
   | CFun (f, e, fpmax) -> comment ("CFun" ^ f) ++
     let code = compile_expr e in
     let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
@@ -143,6 +147,7 @@ let compile_decl = function
     let code = compile_expr e in
     let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
     pre ++ code ++ post
+  | _ -> raise (CompilerError "during production of code of decl") 
 
 let force =
   label "_force" ++
@@ -169,11 +174,14 @@ let force =
 let compile_program p primitives =
   let rec aux = function
     | [] -> (nop, nop, [])
-    | (CMain _ as main)::q -> let codefun, _, data = aux q in
-      codefun, compile_decl main, data
-    | (CDef (i, _, _) | CFun (i, _, _)) as decl::q ->
+    | (CMain _ as main)::q -> let codefun, code, data = aux q in
+      codefun, code ++ compile_decl main, data
+    | CFun (i, _, _) as decl::q ->
       let codefun, code, data = aux q in
-      ((compile_decl decl) ++ codefun, code, i::data) in
+      ((compile_decl decl) ++ codefun, code, i::data)
+    | CDef (i, _, _) as decl::q ->
+      let codefun, code, data = aux q in
+      (codefun, (compile_decl decl) ++ code, i::data) in
   let codefun, code, data = aux p in
   { text =
       label "main" ++
@@ -190,6 +198,8 @@ let compile_program p primitives =
         sw t1 areg(4, v0) ++
         sw v0 areg(0, t0) ++
         code ) nop primitives ++
+      List.fold_left (fun data lbl -> data ++ li a0 8 ++ li v0 9 ++ syscall ++ sw v0 alab lbl)
+      nop data ++
       code ++
       li a0 0 ++
       li v0 17 ++ (* exit 0 *)
