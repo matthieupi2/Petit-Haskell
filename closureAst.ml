@@ -81,7 +81,9 @@ let rec ferm_expr = function
 let ferm_def = function (* TODO? pas toutes des fonctions *)
   | ("main" , v) -> let fmain, ffun = ferm_expr v in
     (Fmain fmain)::ffun
-  | (i, v) -> let fbody, ffun = ferm_expr v in
-    (Fdef (i, fbody))::ffun
+  | (i, v) -> numglacon := !numglacon + 1;
+      let s = ("_glacon_" ^ (string_of_int (!numglacon))) in
+      let fbody, ffun = ferm_expr v in
+      (Fdef (i, Fglacon (Fclos (s, v.var_libres))))::((Fcodeglacon (s, v.var_libres, fbody))::ffun)
 
 let ferm p = List.concat (List.map ferm_def p)
