@@ -1,7 +1,22 @@
-(* phase 3 : allocation des variables *)
+
+(* Nouvel ast avec :
+  * l'explicitation de l'accès à chaque variable,
+  * la taille nécessaire dans la pile pour stocker les variables locales,
+  * la fusion des constructeurs Fcodeglacon et Ffun,
+  * les constantes reçoivent une valeur entière *)
+
+(* Les variables sont stockées de la même manière que vue en cours (mis à part
+ * pour le choix des registres :
+  * les variables globales dans .data étiquetées à leur nom,
+  * les variables locales dans la pile à partir de l'adress $fp - 4,
+  * les variables de la fermeture dans le tas, dans le bloc correspondant pointé
+    par $t1 et à partir de $t1 + 8,
+  * l'argument est contenu dans $t0 *)
 
 open Ast
 open ClosureAst
+
+
 
 type var =
   | Vglobale of string
@@ -18,7 +33,7 @@ and cdef = int * cexpr
 
 and cexpr =
   | CVar of var
-  | CCst of int   (* ascii pour CChar, 0 pour False, sinon True pour CBool *)
+  | CCst of int   (* valeur ascii pour CChar, 0 pour False, 1 pour True *)
   | CEmptylist
   | CAppli of cexpr * cexpr
   | CClos of ident * var list
@@ -30,10 +45,14 @@ and cexpr =
   | CReturn
   | CGlacon of cexpr
 
+(* Création du nouvel ast *)
+
 module Smap = Map.Make(String)
 
 type local_env = var Smap.t
 
+(* next correspond au nombre d'octets à allouer sur la pile pour contenir les
+ * variables locales de l'expression *)
 let rec alloc_expr (env : local_env) next = function
   | Fident x -> CVar (Smap.find x env), next
   | Fcst c -> let i = match c with

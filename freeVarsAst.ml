@@ -1,8 +1,9 @@
 
+(* Nouvel ast contenant les variables libres de chaque expression et
+ * où le sucre syntaxique des listes est explicité *)
+
 open Ast
 open TypedAst
-
-(* phase 1 : on calcule les variables libres *)
 
 type vdef = ident * vvexpr
 
@@ -77,7 +78,6 @@ let rec var_libre_expr = function
       (v::lv, union_list var_libres v.var_libres) in
     let (lv, var_libres) = aux l in
     {vexpr = Vdo lv; var_libres = var_libres}
-    (* TODO/ fold_left retourne la liste ! *)
   | Treturn -> {vexpr = Vreturn; var_libres = []}
   
 let var_libre_def (i, tt) = (i, var_libre_expr tt.texpr)

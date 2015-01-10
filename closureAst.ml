@@ -1,14 +1,13 @@
 
+(* Nouvel ast avec construction explicite des fermetures et des glacons
+ * et création de noms distincts pour les futures étiquettes MIPS *)
+
 open Ast
 open FreeVarsAst
 
-(* phase 2 : construction explicite des fermetures  et des glacons *)
 
-let numfun = ref 0
-let numglacon = ref 0
 
-(* TODO Fmain plus tard ? *)
-type fdecl = (* Variables "globales" *)
+type fdecl =
   | Fdef of ident * fexpr
   | Ffun of ident * ident list * ident * fexpr
   | Fcodeglacon of ident * ident list * fexpr
@@ -30,7 +29,12 @@ and fexpr =
   | Freturn
   | Fglacon of fexpr
 
-(* vvexpr -> fexpr * fdecl *)
+(* Renvoie l'ast de l'expression concernée ainsi que la liste des déclarations
+ * de fonction nécessaires à l'exécution de l'expression *)
+
+let numfun = ref 0
+let numglacon = ref 0
+
 let rec ferm_expr = function
   | {vexpr = Vident i} -> Fident i, []
   | {vexpr = Vcst c} -> Fcst c, []
@@ -78,7 +82,7 @@ let rec ferm_expr = function
     Flet (lfdef, fd), lff
   | {vexpr = Vcase (v1, v2, i1, i2, v3)} -> 
     let f1d, f1f = ferm_expr v1 in
-    let f2d, f2f = ferm_expr v2 in (* TODO? glaçon *)
+    let f2d, f2f = ferm_expr v2 in
     let f3d, f3f = ferm_expr v3 in
     Fcase (f1d, f2d, i1, i2, f3d), f1f@f2f@f3f
   | {vexpr = Vdo l1} -> let aux vv (l3, lf) =
@@ -88,13 +92,16 @@ let rec ferm_expr = function
     Fdo l2, lf1
   | {vexpr = Vreturn} -> Freturn, []
 
+(* Crée le nouvel ast pour chaque variable globale et sépare main des autres
+ * variables *)
 
-let ferm_def = function (* TODO? pas toutes des fonctions *)
+let ferm_def = function
   | ("main" , v) -> let fmain, ffun = ferm_expr v in
     (Fmain fmain)::ffun
   | (i, v) -> numglacon := !numglacon + 1;
       let s = ("_glacon_" ^ (string_of_int (!numglacon))) in
       let fbody, ffun = ferm_expr v in
-      (Fdef (i, Fglacon (Fclos (s, v.var_libres))))::((Fcodeglacon (s, v.var_libres, fbody))::ffun)
+      (Fdef (i, Fglacon (Fclos (s, v.var_libres))))::
+        ((Fcodeglacon (s, v.var_libres, fbody))::ffun)
 
 let ferm p = List.concat (List.map ferm_def p)
