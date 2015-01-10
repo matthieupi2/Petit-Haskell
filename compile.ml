@@ -1,4 +1,5 @@
-(* phase 4 : production de code *)
+
+(* Production du code mips *)
 
 (* conventions d'appel :
  - on passe l'argument dans t0 et la cloture dans t1
@@ -16,9 +17,17 @@ open Mips
 
 let numlbl = ref 0
 
-(* TODO tester si n > 0 *)
-let pushn n = sub sp sp oi n
+let popn n =
+  if n > 0 then
+    popn n
+  else
+    nop
 
+let pushn n =
+  if n > 0 then
+    sub sp sp oi n
+  else
+    nop
 
 let compile_var = function
   | Vglobale i -> lw v0 alab i
@@ -131,46 +140,29 @@ let rec compile_expr l =
 let compile_decl = function
   | CDef (x, (CGlacon e), fpmax) -> comment ("CDef" ^ x) ++
     let code = compile_expr e in
-    let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
-    pre ++ code ++ move a1 v0 ++ lw v0 alab x ++
-    li a0 3 ++ sw a0 areg(0, v0) ++ sw a1 areg(4, v0) ++ post
+    pushn fpmax ++ code ++ move a1 v0 ++ lw v0 alab x ++
+    li a0 3 ++ sw a0 areg(0, v0) ++ sw a1 areg(4, v0) ++ popn fpmax
   | CFun (f, e, fpmax) -> comment ("CFun" ^ f) ++
     let code = compile_expr e in
-    let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
-    label ("_code" ^ f) ++
-    push fp ++ push ra ++
-    move fp sp ++ pre ++
-    code ++
-    post ++
-    pop ra ++ pop fp ++ jr ra
+    label ("_code" ^ f) ++ push fp ++ push ra ++ move fp sp ++ pushn fpmax ++
+    code ++ popn fpmax ++ pop ra ++ pop fp ++ jr ra
   | CMain (e, fpmax) ->
     let code = compile_expr e in
-    let pre, post = if fpmax > 0 then pushn fpmax, popn fpmax else nop, nop in
-    pre ++ code ++ post
+    pushn fpmax ++ code ++ popn fpmax
   | _ -> raise (CompilerError "during production of code of decl") 
 
+(* Fonction forçant le calcul d'une valeur pointé par $v0 et retournant le
+ * pointeur vers la valeur calculée *)
 let force =
-  label "_force" ++
-  lw a0 areg(0, v0) ++
-  li a1 2 ++
-  bgt a0 a1 "_force_1" ++
-  jr ra ++
-  label "_force_1" ++
-  li a1 3 ++
-  beq a0 a1 "_force_2" ++
-  lw v0 areg(4, v0) ++
-  jr ra ++
-  label "_force_2" ++
-  push ra ++ push t1 ++ push v0 ++
-  lw t1 areg(4, v0) ++
-  lw t2 areg(4, t1) ++
-  jalr t2 ++ jal "_force" ++ move a1 v0 ++
-  pop v0 ++ pop t1 ++
-  li a0 4 ++ sw a0 areg(0, v0) ++ sw a1 areg(4, v0) ++
-  move v0 a1 ++
-  pop ra ++
-  jr ra
-  
+  label "_force" ++ lw a0 areg(0, v0) ++ li a1 2 ++ bgt a0 a1 "_force_1" ++
+    jr ra ++
+  label "_force_1" ++ li a1 3 ++ beq a0 a1 "_force_2" ++ lw v0 areg(4, v0) ++
+    jr ra ++
+  label "_force_2" ++ push ra ++ push t1 ++ push v0 ++ lw t1 areg(4, v0) ++
+  lw t2 areg(4, t1) ++ jalr t2 ++ jal "_force" ++ move a1 v0 ++ pop v0 ++
+  pop t1 ++ li a0 4 ++ sw a0 areg(0, v0) ++ sw a1 areg(4, v0) ++ move v0 a1 ++
+    pop ra ++ jr ra
+
 let compile_program p primitives =
   let rec aux = function
     | [] -> (nop, nop, [])
@@ -188,33 +180,28 @@ let compile_program p primitives =
       move fp sp ++
       (* Création des fermetures des primitives *)
       List.fold_left (fun code prim ->
-        la t0 alab prim.name ++
-        la t1 alab ("_prim_" ^ prim.name) ++
-        li a0 8 ++
-        li v0 9 ++
-        syscall ++
-        li a0 2 ++
-        sw a0 areg(0, v0) ++
-        sw t1 areg(4, v0) ++
-        sw v0 areg(0, t0) ++
-        code ) nop primitives ++
-      List.fold_left (fun data lbl -> data ++ li a0 8 ++ li v0 9 ++ syscall ++ sw v0 alab lbl)
-      nop data ++
+        la t0 alab prim.name ++ la t1 alab ("_prim_" ^ prim.name) ++ li a0 8 ++
+        li v0 9 ++ syscall ++ li a0 2 ++ sw a0 areg(0, v0) ++
+        sw t1 areg(4, v0) ++ sw v0 areg(0, t0) ++ code ) nop primitives ++
+      (* Allocation des blocs des variables globales et des variables créées par
+       * le compilateur *)
+      List.fold_left (fun data lbl -> data ++ li a0 8 ++ li v0 9 ++ syscall ++
+        sw v0 alab lbl) nop data ++
       code ++
-      li a0 0 ++
-      li v0 17 ++ (* exit 0 *)
-      syscall ++
+      li a0 0 ++ li v0 17 ++ syscall ++
       codefun ++
+      (* Ajout du code des primitives *)
       List.fold_left (fun code prim ->
-        code ++
-        label ("_prim_" ^ prim.name) ++
-        prim.body ) nop primitives ++
+        code ++ label ("_prim_" ^ prim.name) ++ prim.body ) nop primitives ++
       force;
     data =
       label "_newline" ++ asciiz "\n" ++
+      (* Création des étiquettes des variables globales et crées, *)
       List.fold_left (fun data lbl -> label lbl ++ dword [0] ++ data)
           nop data ++
+      (* des primitives, *)
       List.fold_left (fun code prim -> code ++ label prim.name ++ dword [0])
           nop primitives ++
+      (* des étiquettes définies par les primitives *)
       List.fold_left (fun data prim -> data ++ prim.pdata) nop primitives
   }
