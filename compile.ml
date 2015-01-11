@@ -59,7 +59,7 @@ let rec compile_expr l =
       li a0 2 ++ sw a0 areg (0, t2) ++ la a0 alab ("_code" ^ f) ++ sw a0 areg (4, t2) ++
       code ++ move v0 t2
     | CBinop (o, e1, e2) ->
-      (* TODO new_lbl () *)
+      (* new_lbl () *)
       numlbl := !numlbl + 2; comment "CBinop" ++
       let s1 = ("_lbl_" ^ (string_of_int (!numlbl-1))) in
       let code_e1 = compile_expr e1 in
@@ -70,7 +70,6 @@ let rec compile_expr l =
           li a0 12 ++ li v0 9 ++ syscall ++ li a3 1 ++ sw a3 areg (0, v0) ++
           sw a1 areg (4, v0) ++ sw a2 areg (8, v0)
         | Band | Bor ->
-          (* TODO force = ... *)
           code_e1 ++ push ra ++ jal "_force" ++ pop ra ++ lw a1 areg (4, v0) ++
           ( match o with
             | Band ->

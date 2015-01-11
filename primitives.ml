@@ -8,8 +8,6 @@ open Mips
 type primitive = { name : string; typ : typ; generalized : bool;
     body : Mips.text; pdata : Mips.data } 
 
-(* TODO compléter les body *)
-(* TODO ajouter ces fermetures dans le tas pour rester coherent avec *)
 let primitives = [
   { name = "div";
     typ = Tarrow (Tint, Tarrow (Tint, Tint));
