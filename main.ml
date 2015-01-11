@@ -18,7 +18,6 @@ open ClosureAst
 open AllocatedAst
 open Compile
 open Error
-(**) open Print
 
 (* Définition des options proposées pour l'exécution *)
 
@@ -30,7 +29,6 @@ let opt_type_only = ref false
 let spec = [
   "--parse-only", Arg.Set opt_parse_only, " stop after parsing" ;
   "--type-only", Arg.Set opt_type_only, " stop after typing" ]
-(**) @Print.spec
 
 (* Ouverture du fichier à compiler *)
 let rfile =

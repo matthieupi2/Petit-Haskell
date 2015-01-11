@@ -4,7 +4,9 @@
 (* conventions d'appel :
  - on passe l'argument dans t0 et la cloture dans t1
  - on renvoie un pointeur dans v0
- - la fonction force prend un pointeur dans v0 et renvoie un pointeur dans v0 (le meme)
+ - la fonction force prend un pointeur dans v0 et renvoie un pointeur dans v0
+ 
+ cf pierre-piquerez.txt pour plus de précisions 
 *)
 
 
@@ -59,7 +61,6 @@ let rec compile_expr l =
       li a0 2 ++ sw a0 areg (0, t2) ++ la a0 alab ("_code" ^ f) ++ sw a0 areg (4, t2) ++
       code ++ move v0 t2
     | CBinop (o, e1, e2) ->
-      (* new_lbl () *)
       numlbl := !numlbl + 2; comment "CBinop" ++
       let s1 = ("_lbl_" ^ (string_of_int (!numlbl-1))) in
       let code_e1 = compile_expr e1 in

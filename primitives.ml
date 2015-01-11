@@ -50,6 +50,8 @@ let primitives = [
     body = move v0 t0 ++ push ra ++ jal "_force" ++ pop ra ++
       lw a0 areg(4, v0) ++ li v0 11 ++ syscall ++ jr ra;
 		pdata = nop } ;
+  (* la fonction error parcourt une première fois les caractères sans les
+   * afficher au cas où il y aurait des error imbriquées *)
   { name = "error";
     typ = Tarrow (Tlist Tchar, Tvar (V.create ()));
     generalized = true;
@@ -66,7 +68,8 @@ let primitives = [
       syscall
     ; pdata = label "_error_text" ++ asciiz "error: " } ]
 
-(* Utilisée par UncurriedAst pour vérifier la non redéfinition *)
+(* Utilisée par UncurriedAst pour vérifier la non redéfinition et lors de
+ * l'allocation des variables *)
 let getNames =
   let rec aux = function
     | [] -> []

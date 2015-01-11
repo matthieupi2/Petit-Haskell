@@ -4,19 +4,20 @@
 Choix techniques :
 
 On a utilisé le schema de compilation décrit dans sujet 2012.
+A savoir les blocs suivent exactement le même schéma et la fonction force a exactement le même comportement.
+
 
 Les conventions d'appel sont :
- - on passe l'argument dans t0 et la cloture dans t1
- - on renvoie un pointeur dans v0
- - la fonction force prend un pointeur dans v0 et renvoie un pointeur dans v0 (le meme)
+ - on passe le pointeur vers le bloc de l'argument dans t0 et celui de la cloture dans t1
+ - les fonctions et expressions concernées renvoie un pointeur dans v0
+ - la fonction force prend un pointeur dans v0 et renvoie un pointeur dans v0 (le même)
 
 On a créé un fichier error.ml qui regroupe toutes les erreurs renvoyées par le compilateur.
-Le fichier print.ml permet d'afficher l'arbre du programme lors des différentes étapes de compilation.
+Le fichier print.ml permet d'afficher l'arbre du programme lors des différentes étapes de compilation mais n'est pas nécessaire pour la compilation.
 Le fichier primitives.ml contient le code MIPS des quatre primitives.
 
 
 Difficultés rencontrées :
 
-Le déboggage...
-La récursivité mutuelle des déclarations globales et locales.
-L'évaluation paresseuse, notamment obtenir les bons résultats pour les fichiers tests "lazy".
+L'ensemble du projet a été effectué et nous n'avons pas apporté d'améliorations remarquables (ni sur la rapidité du programme compilé, ni sur l'expressivité du typage).  
+Les quelques difficultés rencontrés ont rapidement été surmontées (nous pouvons notamment citer le débogage du code MIPS, la récursivité mutuelle des déclarations globales et locales, l'évaluation paresseuse, notamment pour les listes).
